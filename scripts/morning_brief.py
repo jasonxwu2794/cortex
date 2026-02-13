@@ -9,6 +9,7 @@ Usage:
     from scripts.morning_brief import compile_brief, send_brief
 """
 
+import json
 import os
 import shutil
 import sqlite3
@@ -16,6 +17,7 @@ import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 # Resolve workspace root (parent of scripts/)
 WORKSPACE = Path(__file__).resolve().parent.parent
@@ -23,6 +25,37 @@ DATA_DIR = WORKSPACE / "data"
 MEMORY_DB = DATA_DIR / "memory.db"
 PROJECTS_DB = DATA_DIR / "projects.db"
 ACTIVITY_DB = DATA_DIR / "activity.db"
+STATE_FILE = WORKSPACE / ".wizard-state.json"
+
+
+def _read_config(key: str, default: str = "") -> str:
+    """Read a dot-notation key from the wizard state JSON."""
+    if not STATE_FILE.exists():
+        return default
+    try:
+        data = json.loads(STATE_FILE.read_text())
+        for part in key.split("."):
+            data = data[part]
+        return str(data) if data else default
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return default
+
+
+def get_weather(city: str) -> str:
+    """Fetch current weather for a city from wttr.in. Returns empty string on error."""
+    if not city:
+        return ""
+    try:
+        result = subprocess.run(
+            ["curl", "-s", f"wttr.in/{city}?format=%t,+%C"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            raw = result.stdout.strip()
+            return f"🌤️ Weather in {city}: {raw}"
+    except (subprocess.TimeoutExpired, Exception):
+        pass
+    return ""
 
 
 def _dict_factory(cursor, row):
@@ -109,6 +142,25 @@ def _memory_stats() -> dict:
     }
 
 
+def _weather(city: str) -> str | None:
+    """Fetch weather from wttr.in. Returns formatted string or None."""
+    if not city:
+        return None
+    import urllib.request
+    import urllib.parse
+    try:
+        encoded = urllib.parse.quote(city)
+        url = f"https://wttr.in/{encoded}?format=%t,+%C"
+        req = urllib.request.Request(url, headers={"User-Agent": "curl/8.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            text = resp.read().decode("utf-8").strip()
+            if text and "Unknown" not in text and "Sorry" not in text:
+                return f"🌤️ Weather in {city}: {text}"
+    except Exception:
+        pass
+    return None
+
+
 def _system_health() -> dict:
     """Quick health snapshot."""
     # Disk free
@@ -165,8 +217,16 @@ def compile_brief() -> str:
     mem = _memory_stats()
     health = _system_health()
 
+    # Weather (optional — only if city configured)
+    city = os.environ.get("MORNING_BRIEF_CITY", "")
+    weather_line = _weather(city) if city else None
+
     # Format
     lines = [f"☀️ Morning Brief — {date_str}", ""]
+
+    if weather_line:
+        lines.append(weather_line)
+        lines.append("")
 
     # Yesterday section
     lines.append("📋 Yesterday:")

@@ -39,11 +39,48 @@ echo ""
 gum style --foreground 240 "  (Optional — press Enter to skip)"
 CURRENT_WORK="$(wizard_input "🔨 What are you currently working on?" "e.g. Building a multi-agent system" "$DEF_WORK")"
 
+# --- Timezone ---
+DEF_TZ="$(state_get 'user.timezone' '')"
+echo ""
+gum style --foreground 240 "  Your timezone is used for scheduling (e.g. morning brief at 08:00 local time)"
+TZ_CHOICE="$(gum choose --header "🕐 Select your timezone (or pick 'Other' to type):" \
+    "UTC" \
+    "US/Eastern" \
+    "US/Central" \
+    "US/Mountain" \
+    "US/Pacific" \
+    "Europe/London" \
+    "Europe/Berlin" \
+    "Europe/Paris" \
+    "Asia/Tokyo" \
+    "Asia/Shanghai" \
+    "Asia/Kolkata" \
+    "Asia/Singapore" \
+    "Australia/Sydney" \
+    "Australia/Melbourne" \
+    "Pacific/Auckland" \
+    "Other")" || TZ_CHOICE="UTC"
+
+if [ "$TZ_CHOICE" = "Other" ]; then
+    TIMEZONE="$(wizard_input "🕐 Enter your timezone" "e.g. America/New_York" "${DEF_TZ:-UTC}")"
+    [ -z "$TIMEZONE" ] && TIMEZONE="UTC"
+else
+    TIMEZONE="$TZ_CHOICE"
+fi
+
+# --- City (optional, for weather) ---
+DEF_CITY="$(state_get 'user.city' '')"
+echo ""
+gum style --foreground 240 "  (Optional — used for weather in your morning brief)"
+CITY="$(wizard_input "🌤️ City for weather in morning brief?" "e.g. Melbourne (leave blank to skip)" "$DEF_CITY")"
+
 # --- Save state ---
 state_set "user.name" "$NAME"
 state_set "user.preferred_name" "$PREFERRED"
 state_set "user.domain" "$DOMAIN"
 state_set "user.current_work" "$CURRENT_WORK"
+state_set "user.timezone" "$TIMEZONE"
+state_set "user.city" "$CITY"
 
 # --- Summary ---
 wizard_divider
@@ -52,5 +89,7 @@ echo "  Name:       $NAME"
 echo "  Call me:    $PREFERRED"
 echo "  Domain:     $DOMAIN"
 [ -n "$CURRENT_WORK" ] && echo "  Working on: $CURRENT_WORK"
+echo "  Timezone:   $TIMEZONE"
+[ -n "$CITY" ] && echo "  City:       $CITY (weather enabled)"
 
 wizard_success "User identity saved!"

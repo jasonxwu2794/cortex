@@ -91,9 +91,10 @@ MORNING_BRIEF="$(gum confirm --default=yes "  Enable Morning Brief? (daily diges
 state_set "features.morning_brief" "$MORNING_BRIEF"
 
 if [ "$MORNING_BRIEF" = "true" ]; then
-    BRIEF_HOUR="$(gum input --placeholder "8" --prompt "  Morning brief hour (0-23, UTC): " --value "8")"
-    state_set "features.morning_brief_hour" "${BRIEF_HOUR:-8}"
-    log_ok "Morning Brief enabled (daily at ${BRIEF_HOUR:-8}:00 UTC)"
+    USER_TZ="$(state_get 'user.timezone' 'UTC')"
+    BRIEF_HOUR="$(gum input --placeholder "8" --prompt "  Morning brief hour (0-23, your local time — $USER_TZ): " --value "8")"
+    state_set "features.morning_brief_hour_local" "${BRIEF_HOUR:-8}"
+    log_ok "Morning Brief enabled (daily at ${BRIEF_HOUR:-8}:00 $USER_TZ)"
 else
     log_info "Morning Brief disabled"
 fi

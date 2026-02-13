@@ -601,9 +601,27 @@ EXISTING_CRON="$(crontab -l 2>/dev/null || true)"
 
 if [ "$MORNING_BRIEF_ENABLED" = "true" ]; then
     log_info "Setting up morning brief cron job..."
-    BRIEF_HOUR="$(state_get 'features.morning_brief_hour' '8')"
+    BRIEF_HOUR_LOCAL="$(state_get 'features.morning_brief_hour_local' '8')"
+    USER_CITY="$(state_get 'user.city' '')"
+
+    # Convert local hour to UTC for cron
+    BRIEF_HOUR_UTC="$(TZ="$USER_TZ" python3 -c "
+from datetime import datetime, timedelta
+import zoneinfo
+try:
+    tz = zoneinfo.ZoneInfo('$USER_TZ')
+    local = datetime.now(tz).replace(hour=$BRIEF_HOUR_LOCAL, minute=0, second=0)
+    utc = local.astimezone(zoneinfo.ZoneInfo('UTC'))
+    print(utc.hour)
+except Exception:
+    print($BRIEF_HOUR_LOCAL)
+" 2>/dev/null || echo "$BRIEF_HOUR_LOCAL")"
+
     BRIEF_MARKER="# openclaw-morning-brief"
-    BRIEF_LINE="0 $BRIEF_HOUR * * * cd $OC_WORKSPACE && python3 scripts/morning_brief.py >> data/morning_brief.log 2>&1 $BRIEF_MARKER"
+    CITY_ENV=""
+    [ -n "$USER_CITY" ] && CITY_ENV="MORNING_BRIEF_CITY='$USER_CITY' "
+    BRIEF_LINE="0 $BRIEF_HOUR_UTC * * * ${CITY_ENV}cd $OC_WORKSPACE && python3 scripts/morning_brief.py >> data/morning_brief.log 2>&1 $BRIEF_MARKER"
+    log_info "  Local: ${BRIEF_HOUR_LOCAL}:00 $USER_TZ → UTC: ${BRIEF_HOUR_UTC}:00"
     if echo "$EXISTING_CRON" | grep -qF "openclaw-morning-brief"; then
         EXISTING_CRON="$(echo "$EXISTING_CRON" | grep -vF "openclaw-morning-brief")"
     fi
