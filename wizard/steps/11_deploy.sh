@@ -637,7 +637,7 @@ except Exception:
         EXISTING_CRON="$(echo "$EXISTING_CRON" | grep -vF "openclaw-morning-brief")"
     fi
     EXISTING_CRON="$(printf '%s\n%s' "$EXISTING_CRON" "$BRIEF_LINE")"
-    log_ok "Morning brief cron installed (daily at ${BRIEF_HOUR}:00)"
+    log_ok "Morning brief cron installed (daily at ${BRIEF_HOUR_LOCAL}:00 local)"
 fi
 
 if [ "$IDEA_SURFACING_ENABLED" = "true" ]; then
