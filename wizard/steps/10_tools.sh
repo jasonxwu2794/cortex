@@ -51,12 +51,8 @@ TOOL_OPTS=(
     "🌐 Web Fetch — Scrape and extract web content"
 )
 
-# Defaults for recommended mode
-if is_recommended; then
-    DEFAULT_SELECTED=("🔍 Web Search — Search the web via Brave API" "📁 File Access — Read/write workspace files" "⚡ Code Execution — Run code in sandbox" "🌐 Web Fetch — Scrape and extract web content")
-else
-    DEFAULT_SELECTED=()
-fi
+# Pre-select recommended tools regardless of mode
+DEFAULT_SELECTED=("🔍 Web Search — Search the web via Brave API" "🐙 GitHub — Repo management, PRs, issues" "📁 File Access — Read/write workspace files" "⚡ Code Execution — Run code in sandbox" "🌐 Web Fetch — Scrape and extract web content")
 
 echo ""
 gum style --foreground 240 "  Use space to toggle, enter to confirm"
