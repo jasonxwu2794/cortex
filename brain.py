@@ -22,6 +22,7 @@ from agents.common.base_agent import BaseAgent
 from agents.common.protocol import (
     AgentRole, AgentMessage, TaskStatus, ContextScope,
 )
+from memory.engine import MemoryEngine, Turn
 
 logger = logging.getLogger(__name__)
 
@@ -207,8 +208,12 @@ class BrainAgent(BaseAgent):
     4. Return final response
     """
 
-    def __init__(self):
-        super().__init__()
+    role = AgentRole.BRAIN
+    name = "brain"
+
+    def __init__(self, memory_db_path: str = "data/memory.db", **kwargs):
+        memory = MemoryEngine(db_path=memory_db_path)
+        super().__init__(memory=memory, **kwargs)
         self.conversation_history: list[dict] = []
         self._system_prompt_text: Optional[str] = None
 
@@ -248,15 +253,14 @@ class BrainAgent(BaseAgent):
     async def on_startup(self):
         """Load conversation history from memory on startup."""
         logger.info("Brain agent starting up")
-        # Attempt to load recent conversation context from memory
         if self.memory:
             try:
-                recent = self.memory.lookup_facts(
-                    category="conversation_summary", limit=5
+                recent = self.memory.retrieve(
+                    query="conversation summary", strategy="recent", limit=5
                 )
                 if recent:
                     logger.info(
-                        f"Loaded {len(recent)} conversation summaries from memory"
+                        f"Loaded {len(recent)} recent memories on startup"
                     )
             except Exception as e:
                 logger.warning(f"Could not load conversation history: {e}")
@@ -795,38 +799,40 @@ class BrainAgent(BaseAgent):
             )
             decision = result["content"]
 
-            # Store memories
-            for mem in decision.get("memories", []):
-                text = mem.get("text", "")
-                if not text:
-                    continue
+            # Store memories via ingest pipeline
+            memory_texts = [m.get("text", "") for m in decision.get("memories", []) if m.get("text")]
+            if memory_texts:
+                combined_user = user_message
+                combined_response = "\n".join(memory_texts)
+                signals = []
+                tags: list[str] = []
+                for mem in decision.get("memories", []):
+                    sig = mem.get("signals", {})
+                    signals.extend(k for k, v in sig.items() if v)
+                    tags.extend(mem.get("tags", []))
 
-                # We need an embedding to store in the vector DB.
-                # For now, store a placeholder — the embeddings module
-                # (to be built) will handle this properly.
-                embedding = self._placeholder_embedding()
-
-                self.memory.store(
-                    text=text,
-                    embedding=embedding,
-                    metadata={
-                        "signals": mem.get("signals", {}),
-                        "tags": mem.get("tags", []),
-                        "source_agent": "brain",
-                    },
+                turn = Turn(
+                    user_message=combined_user,
+                    agent_response=combined_response,
+                    agent="brain",
+                    tags=list(set(tags)) or None,
+                    signals=list(set(signals)) or None,
                 )
+                self.memory.ingest(turn)
 
             # Store facts in knowledge cache
-            for fact in decision.get("facts_for_cache", []):
-                fact_text = fact.get("fact", "")
+            from memory.knowledge_cache import store_fact as kc_store_fact
+            for fact_entry in decision.get("facts_for_cache", []):
+                fact_text = fact_entry.get("fact", "")
                 if not fact_text:
                     continue
-
-                self.memory.store_fact(
+                embedding = self.memory.embedder.embed(fact_text)
+                kc_store_fact(
                     fact=fact_text,
-                    category=fact.get("category", "general"),
-                    confidence=fact.get("confidence", 0.8),
-                    verified_by="brain",
+                    embedding=embedding,
+                    source_agent="brain",
+                    confidence=fact_entry.get("confidence", 0.8),
+                    db=self.memory.db,
                 )
 
             stored_count = len(decision.get("memories", []))
@@ -856,9 +862,13 @@ class BrainAgent(BaseAgent):
         knowledge_excerpts = []
         if self.memory:
             try:
-                knowledge_excerpts = self.memory.lookup_facts(
+                results = self.memory.retrieve(
                     query=user_message[:100], limit=5
                 )
+                knowledge_excerpts = [
+                    {"fact": r.get("fact", r.get("content", "")), **r}
+                    for r in results
+                ]
             except Exception:
                 pass
 
@@ -894,35 +904,29 @@ class BrainAgent(BaseAgent):
         if not self.memory:
             return ""
 
-        parts = []
+        parts: list[str] = []
 
-        # Check knowledge cache first (exact facts)
         try:
-            facts = self.memory.lookup_facts(query=query[:100], limit=3)
+            results = self.memory.retrieve(
+                query=query, strategy="balanced", limit=5
+            )
+            facts = [r for r in results if r.get("type") == "fact"]
+            memories = [r for r in results if r.get("type") != "fact"]
+
             if facts:
                 fact_lines = [f"- {f['fact']}" for f in facts]
                 parts.append("Known facts:\n" + "\n".join(fact_lines))
-        except Exception as e:
-            logger.debug(f"Knowledge cache lookup failed: {e}")
 
-        # Semantic search (requires embedding — placeholder for now)
-        try:
-            embedding = self._placeholder_embedding()
-            memories = self.memory.retrieve(
-                query_embedding=embedding,
-                top_k=5,
-                strategy="balanced",
-            )
             if memories:
                 mem_lines = [
-                    f"- [{m['final_score']:.2f}] {m['text']}"
+                    f"- [{m.get('score', 0):.2f}] {m.get('content', '')}"
                     for m in memories
                 ]
                 parts.append(
                     "Relevant past context:\n" + "\n".join(mem_lines)
                 )
         except Exception as e:
-            logger.debug(f"Vector memory retrieval failed: {e}")
+            logger.debug(f"Memory retrieval failed: {e}")
 
         return "\n\n".join(parts)
 
@@ -951,19 +955,6 @@ class BrainAgent(BaseAgent):
                 self.conversation_history[:2]
                 + self.conversation_history[-keep:]
             )
-
-    def _placeholder_embedding(self) -> list[float]:
-        """
-        Placeholder embedding until the embeddings module is built.
-        Returns a zero vector of the configured dimension.
-
-        TODO: Replace with actual embedding generation from
-        memory/embeddings.py once it's implemented.
-        """
-        dim = 1536  # Default; should come from config
-        if self.memory and hasattr(self.memory, 'config'):
-            dim = self.memory.config.get("embedding_dim", 1536)
-        return [0.0] * dim
 
     @staticmethod
     def _resolve_agent_role(agent_str: str) -> AgentRole:
