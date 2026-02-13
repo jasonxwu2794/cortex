@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================================
 # Step 2: OpenClaw Installation
-# Install openclaw via npm, set up systemd service, verify gateway.
+# Install openclaw via npm, enable linger, verify gateway.
 # ============================================================================
 
 wizard_header "2" "OpenClaw Installation" "Installing the agent orchestration layer..."
@@ -13,6 +13,13 @@ if has_cmd openclaw; then
 
     if ! wizard_confirm "Reinstall/upgrade OpenClaw?"; then
         log_info "Keeping current installation"
+
+        # Still enable linger
+        if has_cmd loginctl; then
+            loginctl enable-linger "$(whoami)" 2>/dev/null || true
+            log_ok "Linger enabled (survives terminal disconnect)"
+        fi
+
         state_set "openclaw_installed" "true"
         return 0 2>/dev/null || true
     fi
@@ -29,13 +36,21 @@ fi
 
 log_ok "OpenClaw installed: $(openclaw --version 2>/dev/null || echo 'success')"
 
-# --- Set up systemd service ---
-if [ -d /etc/systemd/system ] && has_cmd systemctl; then
-    log_info "Setting up systemd service..."
+# --- Enable linger so gateway survives terminal disconnect ---
+if has_cmd loginctl; then
+    loginctl enable-linger "$(whoami)" 2>/dev/null || true
+    log_ok "Linger enabled (survives terminal disconnect)"
+fi
+
+# --- Set up systemd user service (preferred) ---
+SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
+if has_cmd systemctl; then
+    log_info "Setting up systemd user service..."
+    mkdir -p "$SYSTEMD_USER_DIR"
 
     OPENCLAW_BIN="$(which openclaw)"
 
-    sudo tee /etc/systemd/system/openclaw.service > /dev/null << EOF
+    cat > "$SYSTEMD_USER_DIR/openclaw-gateway.service" << EOF
 [Unit]
 Description=OpenClaw Agent Gateway
 After=network.target
@@ -46,25 +61,14 @@ ExecStart=$OPENCLAW_BIN gateway start
 Restart=on-failure
 RestartSec=5
 Environment=HOME=$HOME
-WorkingDirectory=$PROJECT_DIR
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 EOF
 
-    sudo systemctl daemon-reload
-    sudo systemctl enable openclaw.service
-    sudo systemctl start openclaw.service
-
-    # Brief pause to let gateway start
-    sleep 3
-
-    # Verify gateway
-    if systemctl is-active --quiet openclaw.service; then
-        log_ok "OpenClaw service running"
-    else
-        log_warn "Service may still be starting — will verify later"
-    fi
+    systemctl --user daemon-reload
+    systemctl --user enable openclaw-gateway.service 2>/dev/null || true
+    log_ok "Systemd user service configured"
 else
     log_info "systemd not available — you'll need to start OpenClaw manually:"
     gum style --foreground 212 --padding "0 2" "openclaw gateway start"
