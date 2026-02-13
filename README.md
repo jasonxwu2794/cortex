@@ -121,7 +121,7 @@ Projects turn ideas into shipped code through a structured pipeline:
 
 The memory system is what makes this project special. Your agents don't just respond — they **remember**.
 
-### Three Tiers + Knowledge Cache
+### Memory Layers
 
 | Tier | What | Decay |
 |------|------|-------|
@@ -211,11 +211,11 @@ MemoryEnhancedMultiAgent/
 │       ├── 01_prerequisites.sh
 │       ├── 04b_tech_stack.sh     # Language/framework selection
 │       ├── 08_memory_setup.sh    # Memory tier + embeddings
-│       ├── 12_deploy.sh          # Generate configs, start agents
+│       ├── 11_deploy.sh          # Generate configs, start agents
 │       └── ...
 ├── agents/
 │   ├── session_manager.py        # Agent lifecycle & session routing
-│   ├── common/                   # Shared: base_agent, llm_client, protocol, gitops, retry
+│   ├── common/                   # Shared: base_agent, llm_client, protocol, gitops, retry, content_tags
 │   ├── brain/                    # 🧠 Cortex + project management
 │   │   ├── brain.py              # Orchestrator
 │   │   ├── project_manager.py    # Idea backlog, project tracking
@@ -224,7 +224,7 @@ MemoryEnhancedMultiAgent/
 │   ├── builder/                  # 🔨 Code generation (+ Aider integration)
 │   ├── researcher/               # 🔬 Web research & synthesis
 │   ├── verifier/                 # ✅ Claim verification & QA
-│   └── guardian/                 # 🛡️ Security & cost monitoring
+│   └── guardian/                 # 🛡️ Quality + security gatekeeper
 ├── memory/
 │   ├── engine.py                 # Memory orchestration
 │   ├── schemas.py                # Data models
@@ -241,7 +241,9 @@ MemoryEnhancedMultiAgent/
 │   ├── health_check.sh           # Auto-restart on failure
 │   ├── backup_memory.sh          # Daily memory snapshots
 │   ├── rotate_logs.sh            # Log cleanup
-│   └── pre-commit                # Security scanning hook
+│   ├── pre-commit                # Security scanning hook
+│   ├── morning_brief.py          # Daily digest to messaging platform
+│   └── idea_surfacer.py          # Weekly idea suggestions for backlog
 ├── tests/                        # Unit, integration, and e2e tests
 └── docs/
     ├── ARCHITECTURE.md           # Deep technical design
@@ -262,12 +264,13 @@ MemoryEnhancedMultiAgent/
 | **Plugin System** | 📋 Planned | Add custom agents without forking |
 | **Mission Control** | 📋 Planned | Web UI for monitoring agents, memory, and costs |
 | **Model Fallback Chains** | 📋 Planned | Auto-failover between providers |
+| **Standalone Mode** | 📋 Planned | Pure Python gateway, web chat UI, no OpenClaw dependency |
 
 ---
 
 ## 🤝 Contributing
 
-This project is in early development. Contributions welcome! Check [ARCHITECTURE.md](ARCHITECTURE.md) for the technical design and [ROADMAP.md](ROADMAP.md) for what's next.
+This project is in early development. Contributions welcome! Check [ARCHITECTURE.md](docs/ARCHITECTURE.md) for the technical design and [ROADMAP.md](ROADMAP.md) for what's next.
 
 1. Fork the repo
 2. Create a feature branch
