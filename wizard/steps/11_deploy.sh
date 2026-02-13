@@ -46,11 +46,11 @@ mkdir -p "$OC_DIR/agents/main/agent"
 # 1. Install Python dependencies
 # ============================================================
 log_info "Installing Python dependencies for memory engine..."
-log_info "  This may take a few minutes (downloading PyTorch + sentence-transformers)..."
+log_info "  Using ONNX runtime for embeddings (lightweight, no PyTorch needed)..."
 python3 -m pip install --break-system-packages --ignore-installed -r "$PROJECT_DIR/requirements.txt" 2>&1 | tail -5 || \
     python3 -m pip install -r "$PROJECT_DIR/requirements.txt" 2>&1 | tail -5 || {
     log_warn "pip install failed — memory features may not work"
-    log_warn "  Try manually: pip install sentence-transformers --break-system-packages"
+    log_warn "  Try manually: pip install sentence-transformers onnxruntime --break-system-packages"
 }
 log_ok "Python dependencies installed"
 

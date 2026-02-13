@@ -16,13 +16,17 @@ _model_cache: dict[str, object] = {}
 
 
 class LocalEmbedder:
-    """Local embeddings using sentence-transformers MiniLM-L6-v2."""
+    """Local embeddings using sentence-transformers MiniLM-L6-v2 (ONNX backend preferred)."""
 
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
         self.model_name = model_name
         if model_name not in _model_cache:
             from sentence_transformers import SentenceTransformer
-            _model_cache[model_name] = SentenceTransformer(model_name)
+            # Prefer ONNX backend (50MB vs 2GB PyTorch) — falls back to PyTorch if unavailable
+            try:
+                _model_cache[model_name] = SentenceTransformer(model_name, backend="onnx")
+            except (TypeError, ImportError, Exception):
+                _model_cache[model_name] = SentenceTransformer(model_name)
         self.model = _model_cache[model_name]
 
     def embed(self, text: str) -> np.ndarray:

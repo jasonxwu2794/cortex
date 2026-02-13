@@ -1,4 +1,7 @@
 sentence-transformers>=2.2.0
+onnxruntime>=1.17.0
 numpy>=1.24.0
 httpx>=0.24.0
 # jq — install via system package manager (apt install jq / brew install jq), not pip
+# Note: sentence-transformers uses ONNX backend by default (50MB).
+# PyTorch is NOT required — only pulled if ONNX fails.
