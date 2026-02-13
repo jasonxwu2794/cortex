@@ -47,7 +47,7 @@ mkdir -p "$OC_DIR/agents/main/agent"
 # ============================================================
 log_info "Installing Python dependencies for memory engine..."
 gum spin --spinner dot --title "Installing Python dependencies..." -- \
-    python3 -m pip install --break-system-packages -q -r "$PROJECT_DIR/requirements.txt" 2>/dev/null || python3 -m pip install -q -r "$PROJECT_DIR/requirements.txt" 2>/dev/null || {
+    python3 -m pip install --break-system-packages --ignore-installed -q -r "$PROJECT_DIR/requirements.txt" 2>/dev/null || python3 -m pip install -q -r "$PROJECT_DIR/requirements.txt" 2>/dev/null || {
     log_warn "pip install failed — memory features may not work"
 }
 log_ok "Python dependencies installed"
