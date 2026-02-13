@@ -13,7 +13,7 @@ def main():
     parser.add_argument("query", help="Search query")
     parser.add_argument("--db", default="data/memory.db", help="Path to SQLite DB")
     parser.add_argument("--top-k", type=int, default=5, help="Number of results")
-    parser.add_argument("--threshold", type=float, default=0.5, help="Min similarity")
+    parser.add_argument("--threshold", type=float, default=0.3, help="Min similarity")
     args = parser.parse_args()
 
     try:
