@@ -95,6 +95,19 @@ else
     FRAMEWORKS="$(wizard_input "🔧 Frameworks:" "e.g. Rails, Phoenix" "$DEF_FRAMEWORKS")"
 fi
 
+# --- Frontend (optional, for any language) ---
+echo ""
+gum style --foreground 212 "Frontend framework? (optional — space to select, enter to skip):"
+FE_OPTS=("React" "Next.js" "Vue" "Svelte" "Angular" "HTMX" "None")
+FRONTEND="$(gum choose "${FE_OPTS[@]}")"
+if [ "$FRONTEND" != "None" ] && [ -n "$FRONTEND" ]; then
+    if [ -n "$FRAMEWORKS" ]; then
+        FRAMEWORKS="$FRAMEWORKS,$FRONTEND"
+    else
+        FRAMEWORKS="$FRONTEND"
+    fi
+fi
+
 # --- Package Manager ---
 echo ""
 gum style --foreground 212 "Preferred package manager:"
