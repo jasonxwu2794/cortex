@@ -431,7 +431,8 @@ BRAIN_MODEL_ID="$(brain_model_id "$MODEL_BRAIN")"
 OC_JSON="$(echo "$OC_JSON" | jq \
     --arg model "$BRAIN_MODEL_ID" \
     --arg ws "$OC_WORKSPACE" \
-    '.agents.defaults.model.primary = $model |
+    '.gateway.mode = "local" |
+     .agents.defaults.model.primary = $model |
      .agents.defaults.workspace = $ws |
      .agents.defaults.maxConcurrent = (.agents.defaults.maxConcurrent // 4) |
      .agents.defaults.subagents.maxConcurrent = (.agents.defaults.subagents.maxConcurrent // 8)')"
