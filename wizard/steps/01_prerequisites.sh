@@ -145,6 +145,14 @@ else
     wizard_success "All dependencies satisfied!"
 fi
 
+# --- Ensure build tools are available (needed for Python packages with C extensions) ---
+if command -v apt-get &>/dev/null; then
+    if ! dpkg -l build-essential &>/dev/null 2>&1; then
+        log_info "Installing build tools..."
+        sudo apt-get install -y -qq build-essential python3-dev jq 2>/dev/null || true
+    fi
+fi
+
 # --- Ensure pip is available (Ubuntu may have Python without pip) ---
 if ! python3 -m pip --version &>/dev/null; then
     log_warn "pip not found — installing..."
