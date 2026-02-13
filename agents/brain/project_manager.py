@@ -235,13 +235,15 @@ class ProjectManager:
 
     def _init_db(self):
         conn = sqlite3.connect(self.db_path)
-        conn.executescript(SCHEMA_SQL)
-        # Run migrations for existing databases
+        # Run migrations FIRST for existing databases (before schema creates indexes on new columns)
         for migration in MIGRATIONS:
             try:
                 conn.execute(migration)
             except sqlite3.OperationalError:
-                pass  # Column already exists
+                pass  # Column/table already exists or doesn't need migration
+        conn.commit()
+        # Then create any missing tables/indexes
+        conn.executescript(SCHEMA_SQL)
         conn.commit()
         conn.close()
 
