@@ -76,7 +76,7 @@ fi
 
 # --- Install Aider (AI code editing tool) ---
 log_info "Installing Aider (AI-powered code editor)..."
-wizard_spin "Installing aider-chat..." pip install aider-chat
+wizard_spin "Installing aider-chat..." python3 -m pip install aider-chat
 
 if has_cmd aider; then
     AIDER_VER="$(aider --version 2>/dev/null || echo 'installed')"
