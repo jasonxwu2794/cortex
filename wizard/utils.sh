@@ -19,9 +19,9 @@ DIM='\033[2m'
 RESET='\033[0m'
 
 # --- Logging ---
-log_info()  { echo -e "${CYAN}ℹ${RESET}  $*"; }
-log_ok()    { echo -e "${GREEN}✅${RESET} $*"; }
-log_warn()  { echo -e "${YELLOW}⚠${RESET}  $*"; }
+log_info()  { echo -e "${CYAN}ℹ ${RESET} $*"; }
+log_ok()    { echo -e "${GREEN}✅${RESET}  $*"; }
+log_warn()  { echo -e "${YELLOW}⚠ ${RESET} $*"; }
 log_error() { echo -e "${RED}❌${RESET} $*"; }
 
 # --- gum Wrappers ---
