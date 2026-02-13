@@ -315,13 +315,18 @@ log_info "Generating agent config.yaml files..."
 brain_model_id_for() {
     local model="$1"
     case "$model" in
-        claude-sonnet-4)     echo "anthropic/claude-sonnet-4-20250514" ;;
-        claude-opus-4)       echo "anthropic/claude-opus-4-20250514" ;;
-        deepseek-v3)         echo "deepseek/deepseek-chat" ;;
+        claude-opus-4-6)     echo "anthropic/claude-opus-4-6" ;;
+        claude-sonnet-4-5)   echo "anthropic/claude-sonnet-4-5-20250514" ;;
+        claude-haiku-3.5)    echo "anthropic/claude-3-5-haiku-20241022" ;;
+        deepseek-reasoner)   echo "deepseek/deepseek-reasoner" ;;
+        deepseek-chat)       echo "deepseek/deepseek-chat" ;;
         qwen-max)            echo "alibaba/qwen-max" ;;
-        kimi*)               echo "moonshot/kimi" ;;
-        minimax*)            echo "minimax/minimax" ;;
-        codestral*)          echo "mistral/codestral" ;;
+        qwen-plus)           echo "alibaba/qwen-plus" ;;
+        gemini-3-pro-preview) echo "google/gemini-3-pro-preview" ;;
+        gemini-2.5-pro)      echo "google/gemini-2.5-pro-preview" ;;
+        gemini-2.5-flash)    echo "google/gemini-2.5-flash-preview" ;;
+        kimi-k2.5-thinking)  echo "moonshot/kimi-k2.5" ;;
+        kimi-k2.5-instant)   echo "moonshot/kimi-k2.5" ;;
         *)                   echo "$model" ;;
     esac
 }
@@ -439,12 +444,18 @@ fi
 brain_model_id() {
     local model="$1"
     case "$model" in
-        claude-sonnet-4)     echo "anthropic/claude-sonnet-4-20250514" ;;
-        claude-opus-4)       echo "anthropic/claude-opus-4-20250514" ;;
+        claude-opus-4-6)     echo "anthropic/claude-opus-4-6" ;;
+        claude-sonnet-4-5)   echo "anthropic/claude-sonnet-4-5-20250514" ;;
         claude-haiku-3.5)    echo "anthropic/claude-3-5-haiku-20241022" ;;
-        deepseek-v3)         echo "deepseek/deepseek-chat" ;;
-        deepseek-r1)         echo "deepseek/deepseek-reasoner" ;;
+        deepseek-reasoner)   echo "deepseek/deepseek-reasoner" ;;
+        deepseek-chat)       echo "deepseek/deepseek-chat" ;;
         qwen-max)            echo "alibaba/qwen-max" ;;
+        qwen-plus)           echo "alibaba/qwen-plus" ;;
+        gemini-3-pro-preview) echo "google/gemini-3-pro-preview" ;;
+        gemini-2.5-pro)      echo "google/gemini-2.5-pro-preview" ;;
+        gemini-2.5-flash)    echo "google/gemini-2.5-flash-preview" ;;
+        kimi-k2.5-thinking)  echo "moonshot/kimi-k2.5" ;;
+        kimi-k2.5-instant)   echo "moonshot/kimi-k2.5" ;;
         *)                   echo "$model" ;;
     esac
 }
