@@ -78,6 +78,10 @@
 
 ## Phase 2: Pro Tier 🔮
 
+- [ ] Weekly strategic review (auto-generated summary of progress, blockers, velocity)
+- [ ] Smart brief scheduling (learn when user is active, deliver at optimal time)
+- [ ] Team digest (multi-user summary for collaborative projects)
+- [ ] Cost reports in morning brief (LLM spend breakdown by agent/provider)
 - [ ] Parallel task execution (Builder + Researcher simultaneously)
 - [ ] Multiple concurrent projects with priority management
 - [ ] Sprint planning with velocity tracking

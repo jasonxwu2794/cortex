@@ -493,6 +493,29 @@ memory-enhanced-multi-agent/
 - Config auto-updater
 - Error recovery and graceful degradation
 
+## Proactive Cron Jobs
+
+The system includes two proactive automation scripts that run on cron schedules:
+
+### ☀️ Morning Brief (`scripts/morning_brief.py`)
+Runs daily (default 08:00). Compiles a digest covering:
+- Tasks completed in the last 24 hours
+- Queued and blocked tasks
+- Memory stats (new memories, consolidation runs, knowledge cache size)
+- System health (gateway status, disk space, DB sizes)
+
+Delivers via OpenClaw messaging to the user's configured platform. Also importable: `from scripts.morning_brief import compile_brief` for on-demand use by Cortex.
+
+### 💡 Idea Surfacer (`scripts/idea_surfacer.py`)
+Runs weekly (Monday 10:00). Analyzes:
+- Knowledge graph clusters (frequently linked topics via `memory_links`)
+- Dropped threads (recent memories mentioning ideas with no matching project/task)
+- Tech stack gaps (common improvements based on `TEAM.md` configuration)
+
+Generates 1-2 suggestions via LLM, adds them to the idea backlog tagged `source: auto-suggested`, and sends a notification. Importable: `from scripts.idea_surfacer import surface_ideas`.
+
+Both features are toggleable in the wizard (Step 10: Tools) and default to ON.
+
 ## Key Design Decisions
 
 1. **OpenClaw sessions** (not Docker) — zero infrastructure overhead, runs on a $5 VPS, easy to understand

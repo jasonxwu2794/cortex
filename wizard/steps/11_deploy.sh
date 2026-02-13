@@ -592,6 +592,39 @@ printf '%s\n' "$EXISTING_CRON" "$HEALTH_LINE" "$BACKUP_LINE" "$ROTATE_LINE" | cr
 log_ok "Maintenance cron jobs installed (health check, backup, log rotation)"
 
 # ============================================================
+# 5d. Set up proactive cron jobs (morning brief + idea surfacing)
+# ============================================================
+MORNING_BRIEF_ENABLED="$(state_get 'features.morning_brief' 'true')"
+IDEA_SURFACING_ENABLED="$(state_get 'features.idea_surfacing' 'true')"
+
+EXISTING_CRON="$(crontab -l 2>/dev/null || true)"
+
+if [ "$MORNING_BRIEF_ENABLED" = "true" ]; then
+    log_info "Setting up morning brief cron job..."
+    BRIEF_HOUR="$(state_get 'features.morning_brief_hour' '8')"
+    BRIEF_MARKER="# openclaw-morning-brief"
+    BRIEF_LINE="0 $BRIEF_HOUR * * * cd $OC_WORKSPACE && python3 scripts/morning_brief.py >> data/morning_brief.log 2>&1 $BRIEF_MARKER"
+    if echo "$EXISTING_CRON" | grep -qF "openclaw-morning-brief"; then
+        EXISTING_CRON="$(echo "$EXISTING_CRON" | grep -vF "openclaw-morning-brief")"
+    fi
+    EXISTING_CRON="$(printf '%s\n%s' "$EXISTING_CRON" "$BRIEF_LINE")"
+    log_ok "Morning brief cron installed (daily at ${BRIEF_HOUR}:00)"
+fi
+
+if [ "$IDEA_SURFACING_ENABLED" = "true" ]; then
+    log_info "Setting up idea surfacing cron job..."
+    IDEAS_MARKER="# openclaw-idea-surfacing"
+    IDEAS_LINE="0 10 * * 1 cd $OC_WORKSPACE && python3 scripts/idea_surfacer.py >> data/idea_surfacer.log 2>&1 $IDEAS_MARKER"
+    if echo "$EXISTING_CRON" | grep -qF "openclaw-idea-surfacing"; then
+        EXISTING_CRON="$(echo "$EXISTING_CRON" | grep -vF "openclaw-idea-surfacing")"
+    fi
+    EXISTING_CRON="$(printf '%s\n%s' "$EXISTING_CRON" "$IDEAS_LINE")"
+    log_ok "Idea surfacing cron installed (weekly, Monday 10:00)"
+fi
+
+echo "$EXISTING_CRON" | crontab -
+
+# ============================================================
 # 6. Generate AGENTS.md — the orchestration brain
 # ============================================================
 log_info "Generating AGENTS.md (orchestration instructions)..."

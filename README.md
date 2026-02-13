@@ -38,6 +38,8 @@ No Docker. No Redis. No YAML files. Just one SQLite database and a system that g
 | 🏥 | **Self-Maintaining** | Health checks, auto-restart, backups, log rotation, metrics |
 | 📈 | **Knowledge Graduation** | Facts earn permanence through use and time |
 | 🔒 | **Prompt Injection Defense** | Pattern scanning, content tagging, system prompt hardening |
+| ☀️ | **Morning Brief** | Daily digest of progress, queue, health — delivered to your platform |
+| 💡 | **Auto Idea Surfacing** | Weekly pattern analysis suggests ideas for your backlog |
 
 ---
 

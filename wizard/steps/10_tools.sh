@@ -82,4 +82,29 @@ if echo "$TOOLS_JSON" | grep -q "github"; then
     fi
 fi
 
+# ─── Proactive Features ───────────────────────────────────────────────────────
+echo ""
+gum style --foreground 214 --bold "  ☀️ Proactive Features"
+echo ""
+
+MORNING_BRIEF="$(gum confirm --default=yes "  Enable Morning Brief? (daily digest of progress, queue, health)" && echo "true" || echo "false")"
+state_set "features.morning_brief" "$MORNING_BRIEF"
+
+if [ "$MORNING_BRIEF" = "true" ]; then
+    BRIEF_HOUR="$(gum input --placeholder "8" --prompt "  Morning brief hour (0-23, UTC): " --value "8")"
+    state_set "features.morning_brief_hour" "${BRIEF_HOUR:-8}"
+    log_ok "Morning Brief enabled (daily at ${BRIEF_HOUR:-8}:00 UTC)"
+else
+    log_info "Morning Brief disabled"
+fi
+
+IDEA_SURFACING="$(gum confirm --default=yes "  Enable Auto Idea Surfacing? (weekly pattern analysis → backlog ideas)" && echo "true" || echo "false")"
+state_set "features.idea_surfacing" "$IDEA_SURFACING"
+
+if [ "$IDEA_SURFACING" = "true" ]; then
+    log_ok "Idea Surfacing enabled (weekly, Monday)"
+else
+    log_info "Idea Surfacing disabled"
+fi
+
 wizard_success "Tools configured!"
