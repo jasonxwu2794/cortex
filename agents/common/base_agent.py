@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import uuid
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any, Optional
 
 from agents.common.protocol import AgentRole, AgentMessage, TaskStatus, MessageBus
@@ -45,7 +47,9 @@ class BaseAgent(ABC):
         message_bus: MessageBus | None = None,
         llm: LLMClient | None = None,
         activity_log: ActivityLog | None = None,
+        workspace_path: str = "/workspace",
     ):
+        self.workspace_path = workspace_path
         self.memory: Optional[MemoryEngine] = memory
         self.bus: MessageBus = message_bus or MessageBus()
         self.llm: LLMClient = llm or LLMClient(default_model=self.model, agent_name=self.name)
@@ -71,6 +75,36 @@ class BaseAgent(ABC):
 
     @abstractmethod
     async def handle_task(self, msg: AgentMessage) -> Optional[dict]: ...
+
+    # ─── Prompt loading ─────────────────────────────────────────────
+
+    def _load_prompt_file(self, filename: str) -> str:
+        """Load a prompt/context file from workspace. Returns empty string if not found."""
+        for p in [filename, os.path.join(self.workspace_path, filename)]:
+            if os.path.exists(p):
+                with open(p, "r") as f:
+                    return f.read()
+        return ""
+
+    def _load_local_system_prompt(self) -> str:
+        """Load system_prompt.md from the agent's own package directory."""
+        prompt_path = Path(__file__).parent.parent / self.role.value / "system_prompt.md"
+        if prompt_path.exists():
+            return prompt_path.read_text()
+        return ""
+
+    def load_soul(self) -> str:
+        """Load this agent's SOUL.md."""
+        return self._load_prompt_file(f"agents/{self.role.value}/SOUL.md")
+
+    def load_team_context(self) -> str:
+        """Load shared TEAM.md."""
+        return self._load_prompt_file("TEAM.md")
+
+    def build_system_prompt(self) -> str:
+        """Build full system prompt from local system_prompt.md + SOUL.md + TEAM.md."""
+        parts = [self._load_local_system_prompt(), self.load_soul(), self.load_team_context()]
+        return "\n\n".join(p for p in parts if p)
 
     # ─── Lifecycle hooks ──────────────────────────────────────────────
 

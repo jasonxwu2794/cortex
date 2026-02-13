@@ -181,14 +181,10 @@ class GuardianAgent(BaseAgent):
     @property
     def system_prompt(self) -> str:
         if self._system_prompt_text is None:
-            prompt_path = Path(__file__).parent / "system_prompt.md"
-            if prompt_path.exists():
-                self._system_prompt_text = prompt_path.read_text()
-            else:
-                self._system_prompt_text = (
-                    "You are the Guardian agent. Review outputs for security "
-                    "issues. You can PASS, FLAG, or BLOCK. Be thorough."
-                )
+            self._system_prompt_text = self.build_system_prompt() or (
+                "You are the Guardian agent. Review outputs for security "
+                "issues. You can PASS, FLAG, or BLOCK. Be thorough."
+            )
         return self._system_prompt_text
 
     def _supports_sub_agents(self) -> bool:

@@ -214,15 +214,11 @@ class ResearcherAgent(BaseAgent):
     @property
     def system_prompt(self) -> str:
         if self._system_prompt_text is None:
-            prompt_path = Path(__file__).parent / "system_prompt.md"
-            if prompt_path.exists():
-                self._system_prompt_text = prompt_path.read_text()
-            else:
-                self._system_prompt_text = (
-                    "You are the Researcher agent. Investigate thoroughly, "
-                    "synthesize from multiple sources, and flag knowledge gaps. "
-                    "Respond with ONLY valid JSON."
-                )
+            self._system_prompt_text = self.build_system_prompt() or (
+                "You are the Researcher agent. Investigate thoroughly, "
+                "synthesize from multiple sources, and flag knowledge gaps. "
+                "Respond with ONLY valid JSON."
+            )
         return self._system_prompt_text
 
     def _supports_sub_agents(self) -> bool:

@@ -118,18 +118,35 @@ def cluster_memories(memories: list[dict], threshold: float = 0.7) -> list[list[
 
 
 def summarize_cluster(cluster: list[dict]) -> str:
-    """Summarize a cluster of memories.
+    """Summarize a cluster of related memories into one consolidated memory.
 
-    Pick highest-importance memory content and append unique info from others.
-    No LLM needed — suitable for cron.
+    Uses extractive summarization: pulls unique sentences from the cluster
+    and deduplicates near-identical ones. No LLM call needed.
+
+    # TODO: Upgrade to LLM-based abstractive summarization as a future enhancement
+    # for higher-quality consolidated memories (pro tier feature).
     """
-    best = max(cluster, key=lambda m: m.get("importance", 0))
-    others = [m["content"] for m in cluster if m["id"] != best["id"] and m["content"] != best["content"]]
-    if not others:
-        return best["content"]
-    # Merge: best content + unique additions
-    parts = [best["content"]] + [f"[Related: {c}]" for c in others[:5]]
-    return "\n".join(parts)
+    if len(cluster) == 1:
+        return cluster[0]["content"]
+
+    contents = [m["content"] for m in cluster]
+
+    # Simple extractive summary: take unique sentences, deduplicate near-identical ones
+    sentences = []
+    seen: set[str] = set()
+    for content in contents:
+        for sentence in content.split(". "):
+            sentence = sentence.strip()
+            if sentence and sentence.lower() not in seen:
+                seen.add(sentence.lower())
+                sentences.append(sentence)
+
+    # Cap at reasonable length
+    summary = ". ".join(sentences[:20])
+    if not summary.endswith("."):
+        summary += "."
+
+    return summary
 
 
 def prune_low_importance(db: sqlite3.Connection, threshold: float = 0.3) -> int:

@@ -12,12 +12,18 @@ class Embedder(Protocol):
     def embed_batch(self, texts: list[str]) -> list[np.ndarray]: ...
 
 
+_model_cache: dict[str, object] = {}
+
+
 class LocalEmbedder:
     """Local embeddings using sentence-transformers MiniLM-L6-v2."""
 
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
-        from sentence_transformers import SentenceTransformer
-        self.model = SentenceTransformer(model_name)
+        self.model_name = model_name
+        if model_name not in _model_cache:
+            from sentence_transformers import SentenceTransformer
+            _model_cache[model_name] = SentenceTransformer(model_name)
+        self.model = _model_cache[model_name]
 
     def embed(self, text: str) -> np.ndarray:
         return self.model.encode(text, normalize_embeddings=True)
@@ -43,15 +49,27 @@ class APIEmbedder:
         raise NotImplementedError("API embeddings not yet implemented. Use LocalEmbedder.")
 
 
+_embedder_cache: dict[str, Embedder] = {}
+
+
 def get_embedder(config: dict | None = None) -> Embedder:
-    """Factory function to create an embedder based on config."""
-    if config and config.get("type") == "api":
-        return APIEmbedder(
-            api_key=config.get("api_key", ""),
-            provider=config.get("provider", "openai"),
-            model=config.get("model", "text-embedding-3-small"),
+    """Factory function to create an embedder based on config. Caches instances."""
+    cfg = config or {}
+    cache_key = f"{cfg.get('type', 'local')}:{cfg.get('model', 'all-MiniLM-L6-v2')}"
+    if cache_key in _embedder_cache:
+        return _embedder_cache[cache_key]
+
+    if cfg.get("type") == "api":
+        embedder = APIEmbedder(
+            api_key=cfg.get("api_key", ""),
+            provider=cfg.get("provider", "openai"),
+            model=cfg.get("model", "text-embedding-3-small"),
         )
-    return LocalEmbedder(model_name=(config or {}).get("model", "all-MiniLM-L6-v2"))
+    else:
+        embedder = LocalEmbedder(model_name=cfg.get("model", "all-MiniLM-L6-v2"))
+
+    _embedder_cache[cache_key] = embedder
+    return embedder
 
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:

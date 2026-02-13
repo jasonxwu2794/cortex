@@ -207,14 +207,10 @@ class BuilderAgent(BaseAgent):
     @property
     def system_prompt(self) -> str:
         if self._system_prompt_text is None:
-            prompt_path = Path(__file__).parent / "system_prompt.md"
-            if prompt_path.exists():
-                self._system_prompt_text = prompt_path.read_text()
-            else:
-                self._system_prompt_text = (
-                    "You are the Builder agent. Generate clean, functional code. "
-                    "Return structured JSON with artifacts, claims, and confidence."
-                )
+            self._system_prompt_text = self.build_system_prompt() or (
+                "You are the Builder agent. Generate clean, functional code. "
+                "Return structured JSON with artifacts, claims, and confidence."
+            )
         return self._system_prompt_text
 
     def _supports_sub_agents(self) -> bool:

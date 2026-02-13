@@ -234,7 +234,7 @@ class BrainAgent(BaseAgent):
         memory = MemoryEngine(db_path=memory_db_path)
         super().__init__(memory=memory, **kwargs)
         self.conversation_history: list[dict] = []
-        self._system_prompt_text: Optional[str] = None
+        self._system_prompt_text: str | None = None
         self.session_manager = AgentSessionManager()
         self.verbose_mode = verbose_mode
         self.project_manager = ProjectManager()
@@ -245,14 +245,10 @@ class BrainAgent(BaseAgent):
     @property
     def system_prompt(self) -> str:
         if self._system_prompt_text is None:
-            prompt_path = Path(__file__).parent / "system_prompt.md"
-            if prompt_path.exists():
-                self._system_prompt_text = prompt_path.read_text()
-            else:
-                self._system_prompt_text = (
-                    "You are the Brain, the orchestrator in a multi-agent system. "
-                    "You are the only agent that talks to the user."
-                )
+            self._system_prompt_text = self.build_system_prompt() or (
+                "You are the Brain, the orchestrator in a multi-agent system. "
+                "You are the only agent that talks to the user."
+            )
         return self._system_prompt_text
 
     async def handle_task(self, msg: AgentMessage) -> Optional[dict]:
