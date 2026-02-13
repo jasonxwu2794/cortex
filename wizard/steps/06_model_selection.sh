@@ -37,7 +37,7 @@ declare -A DEFAULTS=(
     [researcher_thinking]="Kimi K2.5 Thinking"
     [researcher_instant]="Kimi K2.5 Instant"
     [verifier]="DeepSeek V3.2 Reasoner"
-    [guardian]="Qwen3 Plus"
+    [guardian]="DeepSeek V3.2 Chat"
 )
 
 AGENT_ORDER=(brain builder researcher verifier guardian)

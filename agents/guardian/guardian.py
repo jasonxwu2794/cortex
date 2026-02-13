@@ -237,7 +237,7 @@ class GuardianAgent(BaseAgent):
 
     role = AgentRole.GUARDIAN
     name = "guardian"
-    model = "qwen-plus"
+    model = "deepseek-chat"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
