@@ -1,83 +1,136 @@
-# Roadmap
+# ROADMAP
 
-## Phase 1: Quick Launch ✦ NOW
-OpenClaw sessions, SQLite, wizard. Get it running on a $5 VPS in under 10 minutes.
+## Phase 1: Foundation ✅
 
-- [ ] `install.sh` — checks for OpenClaw, installs if missing, launches wizard
-- [ ] Wizard TUI (gum) — use case, models, API keys, integrations, agent mode
-- [ ] Config generation from Jinja2 templates
-- [ ] SQLite schema — message bus, memory tables, knowledge cache, embeddings
-- [ ] Brain agent as main OpenClaw session (single-agent mode)
-- [ ] Memory engine — store/retrieve with importance + recency scoring
-- [ ] Agent interface (portable abstraction over OpenClaw sessions)
-- [ ] Multi-agent: Brain spawns Builder, Verifier, Researcher, Guardian
-- [ ] Context scoping — Brain filters what each agent sees
-- [ ] Sub-agent pools for Builder (parallel builds) and Researcher (parallel search)
-- [ ] Knowledge cache with verified facts (no decay)
-- [ ] Basic cost tracking via Guardian
+### Setup & Installation
+- [x] `install.sh` entry point
+- [x] Wizard TUI (gum) — 12 steps: prereqs, OpenClaw install, config mode, user identity, tech stack, brain personality, model selection, API keys, memory setup, messaging, tools, deploy
+- [x] Tech stack wizard step (language, frameworks, package manager, DB)
+- [x] Stealth/verbose mode toggle for agent transparency
+- [x] Deploy step wires real OpenClaw config (`openclaw.json`, `auth-profiles.json`)
+- [x] Linger enabled (survives terminal disconnect)
+- [x] Python packaging (`pyproject.toml`, requirements, Makefile, `.gitignore`)
+- [x] README.md
 
-## Phase 1.5: Project Mode & GitOps ✦ DONE
-Structured project management and basic version control.
+### Memory Engine
+- [x] Full pipeline: ingest → split → chunk → stamp metadata → dedup → score → embed → store
+- [x] Three-tier memory: working, short-term, long-term
+- [x] Scoring: semantic similarity + recency (7-day half-life) + importance
+- [x] 4 retrieval strategies (balanced, recency, importance, exact)
+- [x] Context window budget (15% hard cap, priority-ranked)
+- [x] Deduplication with similarity thresholds (>0.92 boost, 0.7–0.92 link, <0.7 novel)
+- [x] Knowledge graph (`memory_links` table; relations: supersedes, related_to, contradicts, elaborates)
+- [x] Knowledge cache (verified facts, no decay)
+- [x] Turn processing pipeline (split, semantic chunking, bidirectional links)
+- [x] Auto-tagging (domain, type, project, agent source)
+- [x] Feedback-driven memory importance
+- [x] Memory conflict resolution (supersede old, decay importance, transfer links)
+- [x] Local embeddings (MiniLM-L6-v2) default, API optional
 
-- [x] ProjectManager — SQLite-backed project/task tracking
-- [x] Spec Writer — LLM-powered SPEC.md generation from user ideas
-- [x] Task Decomposer — Breaks specs into ordered, agent-assigned tasks
-- [x] Brain integration — Project intent detection, creation, task advancement
-- [x] GitOps (free tier) — auto-commit, pre-commit secret scanning, status, log, rollback
-- [x] Pre-commit hook — Guardian credential scanner blocks secrets from commits
-- [x] Wizard integration — git init + hook install during deploy step
+### Agent System
+- [x] SQLite schema — memory tables, knowledge cache, message bus, projects
+- [x] Agent protocol — SQLite message bus, `AgentMessage`, `BaseAgent`
+- [x] LLM client — multi-provider (Anthropic full; DeepSeek/Qwen/MiniMax/Kimi/Mistral stubs)
+- [x] Sub-agent pools for parallel LLM calls
+- [x] All 5 agents wired: Cortex 🧠, Builder 🔨, Researcher 🔬, Verifier ✅, Guardian 🛡️
+- [x] Cortex (Brain) as main OpenClaw session
+- [x] Session manager — `delegate()`, `delegate_parallel()` via OpenClaw sessions
+- [x] Context scoping — each agent only sees what Cortex passes
+- [x] Aider mandatory for Builder (git-aware code editing)
 
-## Pro Tier (Future)
-Advanced features for power users and teams.
+### Reliability
+- [x] Error handling — retries with backoff, graceful degradation, context guard at 85%, DB recovery
+- [x] Custom exceptions + retry utility
+
+### Tests
+- [x] Integration tests (83+)
+- [x] Consolidation tests (14)
+- [x] Project tests (29)
+- [x] Graduation tests (10)
+- [x] E2E install simulation test (26 checks)
+
+---
+
+## Phase 1.5: Project Mode & GitOps ✅
+
+### Project Management
+- [x] Idea backlog (casual ideas saved, promoted when ready)
+- [x] Project → Feature → Task hierarchy
+- [x] Domain tagging for projects
+- [x] Spec writer (LLM-powered, research-backed via Researcher)
+- [x] Task decomposer (features with nested tasks, agent assignments, dependencies)
+- [x] Full collaboration pipeline: Researcher → Builder → Verifier (retry ×2) → Guardian scan → Cortex coherence → auto-commit
+
+### GitOps (Free Tier)
+- [x] Auto-commit on task completion
+- [x] Pre-commit credential scanning (Guardian)
+- [x] Rollback, status, log commands
+
+### Maintenance & Reliability
+- [x] Health check every 30 min with auto-restart
+- [x] Memory backup daily, 7-day rotation
+- [x] Log rotation weekly with metrics harvesting (`data/metrics.json`)
+- [x] Consolidation cron (daily Full, weekly Standard) — clusters short-term → long-term summaries
+- [x] Knowledge graduation (facts earn permanence: 0.8 → 0.95 → 1.0 via access + age)
+- [x] Knowledge refresh (monthly passive flagging of stale facts for re-verification)
+
+---
+
+## Phase 2: Pro Tier 🔮
 
 - [ ] Parallel task execution (Builder + Researcher simultaneously)
 - [ ] Multiple concurrent projects with priority management
 - [ ] Sprint planning with velocity tracking
-- [ ] Dependency graph visualization (Mission Control frontend)
+- [ ] Dependency graph visualization
 - [ ] Branch-per-feature with automated PR creation + Guardian review
 - [ ] CI/CD pipeline (auto-test, auto-deploy on merge)
-- [ ] War Room mode (watch agents discuss in real-time group chat)
+- [ ] War Room mode — agents discuss/debate in a visible group chat in real-time
 - [ ] Smart model routing (cheap models for simple tasks, expensive for complex)
-- [ ] Team analytics (agent performance, bottleneck detection)
-- [ ] One-command rollback
+- [ ] Team analytics (agent performance, bottleneck detection, improvement tracking)
+- [ ] One-command rollback with diff preview
 - [ ] Multi-repo project management
 - [ ] GitHub Actions integration
 - [ ] Remote GitOps (push to VPS from GitHub)
 
-## Future: Hardened Build
-Docker containers with proper isolation. For users who want security boundaries between agents.
+---
+
+## Future: Hardened Build 🐳
 
 - [ ] Dockerfiles per agent
 - [ ] Docker Compose orchestration
 - [ ] Network isolation (sandbox for Builder, external for Researcher/Verifier)
 - [ ] Resource limits per container (CPU, memory, disk)
-- [ ] Optional Redis message bus (replaces SQLite bus for multi-container)
+- [ ] Optional Redis message bus (replaces SQLite for multi-container)
 - [ ] Volume-based memory sharing with permissions
-- [ ] Health checks and auto-restart
+- [ ] Health checks and auto-restart per container
 
-## Future: Plugin System
-Let users add custom agents without forking.
+---
+
+## Future: Plugin System 🔌
 
 - [ ] Agent plugin spec (interface, manifest, permissions declaration)
 - [ ] Plugin discovery and installation via wizard
 - [ ] Sandboxed plugin execution
 - [ ] Community plugin registry
 
-## Future: Mission Control Frontend
-Web UI for monitoring and managing the agent system.
+---
+
+## Future: Mission Control Frontend 🖥️
 
 - [ ] Real-time agent activity dashboard
 - [ ] Message bus inspector
 - [ ] Memory browser and search
 - [ ] Cost tracking charts
 - [ ] Config editor with validation
+- [ ] Project/feature/task board view
 - [ ] Session management (start/stop/restart agents)
 
-## Future: Model Fallback Chains
-Resilient model selection with automatic failover.
+---
+
+## Future: Model Fallback Chains ⛓️
 
 - [ ] Primary → fallback → emergency model chain per agent
 - [ ] Automatic failover on rate limit, timeout, or error
-- [ ] Cost-aware routing (cheaper model for simple tasks)
+- [ ] Cost-aware routing
 - [ ] Quality monitoring — detect degraded responses and escalate
 - [ ] Provider health tracking
