@@ -19,6 +19,29 @@ from agents.common.usage_tracker import UsageTracker
 
 logger = logging.getLogger(__name__)
 
+# Model name → provider mapping for auto-detection
+MODEL_TO_PROVIDER: dict[str, str] = {
+    "claude-sonnet-4": "anthropic",
+    "claude-sonnet-4-20250514": "anthropic",
+    "claude-opus-4": "anthropic",
+    "claude-opus-4-0514": "anthropic",
+    "deepseek-v3": "deepseek",
+    "deepseek-chat": "deepseek",
+    "deepseek-coder": "deepseek",
+    "qwen-max": "qwen",
+    "qwen-plus": "qwen",
+    "qwen-turbo": "qwen",
+    "abab6.5s-chat": "minimax",
+    "abab5.5-chat": "minimax",
+    "moonshot-v1-8k": "kimi",
+    "moonshot-v1-32k": "kimi",
+    "moonshot-v1-128k": "kimi",
+    "codestral-latest": "mistral",
+    "codestral": "mistral",
+    "mistral-large-latest": "mistral",
+    "mistral-small-latest": "mistral",
+}
+
 # Module-level singleton usage tracker
 _usage_tracker: UsageTracker | None = None
 
@@ -55,7 +78,11 @@ class LLMResponse:
 
 
 def _detect_provider(model: str) -> str:
-    """Guess provider from model name prefix."""
+    """Detect provider from model name, using exact mapping first then heuristics."""
+    # Exact match
+    if model in MODEL_TO_PROVIDER:
+        return MODEL_TO_PROVIDER[model]
+    # Heuristic fallback
     model_lower = model.lower()
     if "claude" in model_lower:
         return "anthropic"
@@ -67,7 +94,7 @@ def _detect_provider(model: str) -> str:
         return "minimax"
     if "moonshot" in model_lower or "kimi" in model_lower:
         return "kimi"
-    if "mistral" in model_lower or "mixtral" in model_lower:
+    if "mistral" in model_lower or "mixtral" in model_lower or "codestral" in model_lower:
         return "mistral"
     return "anthropic"  # default
 
@@ -327,6 +354,11 @@ class LLMClient:
     ) -> dict[str, Any]:
         env_var, base_url, _ = PROVIDERS[provider]
         api_key = os.environ.get(env_var, "")
+        # Fallback env vars for providers with multiple key names
+        if not api_key and provider == "qwen":
+            api_key = os.environ.get("DASHSCOPE_API_KEY", "")
+        elif not api_key and provider == "kimi":
+            api_key = os.environ.get("MOONSHOT_API_KEY", "")
         if not api_key:
             return _error_result(f"{env_var} not set for provider {provider}", provider)
 
