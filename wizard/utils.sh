@@ -121,7 +121,7 @@ wizard_success() {
         --border-foreground 2 \
         --padding "1 3" \
         --margin "0 2" \
-        "✅ $message"
+        "✅  $message"
 }
 
 # Display an error banner
