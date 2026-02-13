@@ -29,14 +29,14 @@ case "$QUICK_CHOICE" in
         state_set "tech_stack.language" "python"
         state_set "tech_stack.frameworks" "FastAPI"
         state_set "tech_stack.package_manager" "pip"
-        state_set "tech_stack.database" "PostgreSQL"
+        state_set "tech_stack.database" ""
         state_set "tech_stack.other" ""
         wizard_divider
         gum style --bold "Tech Stack Configuration (defaults):"
         echo "  Language:        python"
         echo "  Frameworks:      FastAPI"
         echo "  Package Manager: pip"
-        echo "  Database:        PostgreSQL"
+        echo "  Database:        (no preference)"
         wizard_success "Tech stack defaults applied!"
         return 0 2>/dev/null || exit 0
         ;;
@@ -132,7 +132,7 @@ fi
 # --- Database ---
 echo ""
 gum style --foreground 212 "Database preference:"
-DB_OPTS=("PostgreSQL" "SQLite" "MongoDB" "MySQL" "No preference")
+DB_OPTS=("No preference" "SQLite" "PostgreSQL" "MongoDB" "MySQL")
 DATABASE="$(gum choose "${DB_OPTS[@]}")"
 
 # --- Other Preferences ---
