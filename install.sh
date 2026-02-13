@@ -7,7 +7,7 @@ set -euo pipefail
 
 REPO_URL="https://github.com/jasonxwu2794/MemoryEnhancedMultiAgent.git"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/MemoryEnhancedMultiAgent}"
-GUM_VERSION="0.14.5"
+GUM_VERSION="0.17.0"
 
 # --- Colors (fallback before gum is available) ---
 RED='\033[0;31m'
@@ -64,7 +64,7 @@ install_gum() {
     os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 
     case "$arch" in
-        x86_64)  arch="amd64" ;;
+        x86_64)  arch="x86_64" ;;
         aarch64|arm64) arch="arm64" ;;
         *) fail "Unsupported architecture: $arch" ;;
     esac
