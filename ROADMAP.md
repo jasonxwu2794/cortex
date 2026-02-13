@@ -16,6 +16,34 @@ OpenClaw sessions, SQLite, wizard. Get it running on a $5 VPS in under 10 minute
 - [ ] Knowledge cache with verified facts (no decay)
 - [ ] Basic cost tracking via Guardian
 
+## Phase 1.5: Project Mode & GitOps ✦ DONE
+Structured project management and basic version control.
+
+- [x] ProjectManager — SQLite-backed project/task tracking
+- [x] Spec Writer — LLM-powered SPEC.md generation from user ideas
+- [x] Task Decomposer — Breaks specs into ordered, agent-assigned tasks
+- [x] Brain integration — Project intent detection, creation, task advancement
+- [x] GitOps (free tier) — auto-commit, pre-commit secret scanning, status, log, rollback
+- [x] Pre-commit hook — Guardian credential scanner blocks secrets from commits
+- [x] Wizard integration — git init + hook install during deploy step
+
+## Pro Tier (Future)
+Advanced features for power users and teams.
+
+- [ ] Parallel task execution (Builder + Investigator simultaneously)
+- [ ] Multiple concurrent projects with priority management
+- [ ] Sprint planning with velocity tracking
+- [ ] Dependency graph visualization (Mission Control frontend)
+- [ ] Branch-per-feature with automated PR creation + Guardian review
+- [ ] CI/CD pipeline (auto-test, auto-deploy on merge)
+- [ ] War Room mode (watch agents discuss in real-time group chat)
+- [ ] Smart model routing (cheap models for simple tasks, expensive for complex)
+- [ ] Team analytics (agent performance, bottleneck detection)
+- [ ] One-command rollback
+- [ ] Multi-repo project management
+- [ ] GitHub Actions integration
+- [ ] Remote GitOps (push to VPS from GitHub)
+
 ## Future: Hardened Build
 Docker containers with proper isolation. For users who want security boundaries between agents.
 

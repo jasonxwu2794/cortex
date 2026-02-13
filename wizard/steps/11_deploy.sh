@@ -664,6 +664,34 @@ if ! grep -q '.wizard-state.json' "$PROJECT_DIR/.gitignore" 2>/dev/null; then
 fi
 
 # ============================================================
+# 6b. Initialize git repo and install pre-commit hook
+# ============================================================
+log_info "Setting up GitOps..."
+
+cd "$OC_WORKSPACE"
+
+# Init git repo if not already one
+if [ ! -d ".git" ]; then
+    git init
+    log_ok "Git repository initialized"
+fi
+
+# Install pre-commit hook
+if [ -f "$PROJECT_DIR/scripts/pre-commit" ]; then
+    mkdir -p .git/hooks
+    cp "$PROJECT_DIR/scripts/pre-commit" .git/hooks/pre-commit
+    chmod +x .git/hooks/pre-commit
+    log_ok "Pre-commit hook installed (Guardian credential scanner)"
+fi
+
+# Initial commit of generated config files
+git add -A 2>/dev/null || true
+git commit -m "Initial setup: agent system, config, and memory" --no-verify 2>/dev/null || true
+log_ok "Initial commit created"
+
+cd "$PROJECT_DIR"
+
+# ============================================================
 # 7. Restart OpenClaw gateway
 # ============================================================
 wizard_divider

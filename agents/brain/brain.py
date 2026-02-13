@@ -23,6 +23,9 @@ from agents.common.protocol import (
     AgentRole, AgentMessage, TaskStatus, ContextScope,
 )
 from agents.session_manager import AgentSessionManager, DelegationTask
+from agents.brain.project_manager import ProjectManager, Task as ProjectTask, ProjectStatus
+from agents.brain import spec_writer, task_decomposer
+from agents.common.gitops import GitOps
 from memory.engine import MemoryEngine, Turn
 
 logger = logging.getLogger(__name__)
@@ -35,6 +38,7 @@ INTENT_BUILD = "build_request"
 INTENT_FACTUAL = "factual_question"
 INTENT_RESEARCH = "research_request"
 INTENT_COMPLEX = "complex_task"
+INTENT_PROJECT = "project_request"
 
 VALID_INTENTS = {
     INTENT_SIMPLE_CHAT,
@@ -42,6 +46,7 @@ VALID_INTENTS = {
     INTENT_FACTUAL,
     INTENT_RESEARCH,
     INTENT_COMPLEX,
+    INTENT_PROJECT,
 }
 
 # Max conversation turns to keep in working memory
@@ -64,6 +69,7 @@ Categories:
 - "build_request": Code generation, file creation/editing, tool execution, automation, debugging, anything that produces artifacts.
 - "factual_question": Specific factual claims to verify, "is this true?", data lookups, corrections.
 - "research_request": Open-ended investigation, comparisons, "find out about...", market research, multi-source synthesis.
+- "project_request": Multi-step project requests ("I want to build...", "let's create...", "can you make..."), project status queries, pause/cancel project commands.
 - "complex_task": Requires MULTIPLE specialists. e.g. "Research X and then build Y based on findings."
 
 For "complex_task", also provide a decomposition into ordered subtasks.
@@ -220,13 +226,16 @@ class BrainAgent(BaseAgent):
         AgentRole.GUARDIAN: "🛡️ Guardian is reviewing security...",
     }
 
-    def __init__(self, memory_db_path: str = "data/memory.db", verbose_mode: str = "stealth", **kwargs):
+    def __init__(self, memory_db_path: str = "data/memory.db", verbose_mode: str = "stealth",
+                 workspace_path: str = "/workspace", **kwargs):
         memory = MemoryEngine(db_path=memory_db_path)
         super().__init__(memory=memory, **kwargs)
         self.conversation_history: list[dict] = []
         self._system_prompt_text: Optional[str] = None
         self.session_manager = AgentSessionManager()
         self.verbose_mode = verbose_mode
+        self.project_manager = ProjectManager()
+        self.gitops = GitOps(workspace_path)
 
     # ─── BaseAgent interface ──────────────────────────────────────────
 
@@ -345,6 +354,9 @@ class BrainAgent(BaseAgent):
                 action="research",
                 context_fn=self._scope_investigator_context,
             )
+
+        elif intent == INTENT_PROJECT:
+            response = await self._handle_project(user_message)
 
         elif intent == INTENT_COMPLEX:
             subtasks = classification.get("subtasks", [])
@@ -1058,6 +1070,166 @@ class BrainAgent(BaseAgent):
             "guardian": AgentRole.GUARDIAN,
         }
         return mapping.get(agent_str, AgentRole.BUILDER)
+
+    # ─── Project Mode ───────────────────────────────────────────────
+
+    async def _handle_project(self, user_message: str) -> dict:
+        """
+        Handle project-level requests:
+        - Status queries
+        - Pause/cancel commands
+        - New project creation
+        - Active project: advance to next task
+        """
+        msg_lower = user_message.lower().strip()
+
+        # Check for status query
+        if any(kw in msg_lower for kw in ["status", "progress", "how's the project", "where are we"]):
+            active = self.project_manager.get_active_project()
+            if not active:
+                return {"response": "No active project right now. Want to start one?", "intent": INTENT_PROJECT, "delegated": False}
+            status = self.project_manager.get_status(active.id)
+            return {
+                "response": self._format_project_status(status),
+                "intent": INTENT_PROJECT,
+                "delegated": False,
+            }
+
+        # Check for pause/cancel
+        if any(kw in msg_lower for kw in ["pause project", "pause the project"]):
+            active = self.project_manager.get_active_project()
+            if active:
+                self.project_manager.update_project_status(active.id, "paused")
+                return {"response": f"⏸️ Project '{active.name}' paused. Say 'resume project' to continue.", "intent": INTENT_PROJECT, "delegated": False}
+            return {"response": "No active project to pause.", "intent": INTENT_PROJECT, "delegated": False}
+
+        if any(kw in msg_lower for kw in ["cancel project", "abandon project"]):
+            active = self.project_manager.get_active_project()
+            if active:
+                self.project_manager.update_project_status(active.id, "paused")
+                return {"response": f"🛑 Project '{active.name}' cancelled.", "intent": INTENT_PROJECT, "delegated": False}
+            return {"response": "No active project to cancel.", "intent": INTENT_PROJECT, "delegated": False}
+
+        # Check for active project → advance next task
+        active = self.project_manager.get_active_project()
+        if active and active.status == "in_progress":
+            return await self._advance_project(active)
+
+        # New project creation
+        return await self._create_new_project(user_message)
+
+    async def _create_new_project(self, user_message: str) -> dict:
+        """Create a new project: write spec, decompose, show to user."""
+        # Generate spec
+        spec = await spec_writer.write_spec(self.llm, user_message)
+
+        # Create project
+        # Extract a short name from the spec
+        name_line = spec.split("\n")[0] if spec else user_message[:50]
+        name = name_line.replace("# Project:", "").replace("#", "").strip()[:60] or "New Project"
+
+        project = self.project_manager.create_project(
+            name=name,
+            description=user_message,
+            spec=spec,
+        )
+
+        # Decompose into tasks
+        tasks = await task_decomposer.decompose(self.llm, spec, project.id)
+        self.project_manager.decompose_into_tasks(project.id, tasks)
+
+        # Format response
+        task_list = "\n".join(
+            f"  {i+1}. [{t.agent}] {t.title}" for i, t in enumerate(tasks)
+        )
+        response = (
+            f"📋 **Project: {name}**\n\n"
+            f"{spec}\n\n"
+            f"---\n"
+            f"**Task Plan ({len(tasks)} tasks):**\n{task_list}\n\n"
+            f"I'll start working on this now. Say 'project status' anytime to check progress."
+        )
+
+        return {
+            "response": response,
+            "intent": INTENT_PROJECT,
+            "delegated": False,
+            "project_id": project.id,
+        }
+
+    async def _advance_project(self, project) -> dict:
+        """Get next task and delegate to appropriate agent."""
+        next_task = self.project_manager.get_next_task(project.id)
+        if not next_task:
+            status = self.project_manager.get_status(project.id)
+            if status.failed_tasks > 0:
+                return {
+                    "response": f"⚠️ Project '{project.name}' has {status.failed_tasks} failed task(s). {self._format_project_status(status)}",
+                    "intent": INTENT_PROJECT, "delegated": False,
+                }
+            return {
+                "response": f"✅ Project '{project.name}' is complete! All {status.completed_tasks} tasks done.",
+                "intent": INTENT_PROJECT, "delegated": False,
+            }
+
+        # Mark in progress
+        self.project_manager.set_task_in_progress(next_task.id)
+
+        # Map agent string to AgentRole
+        agent_role = self._resolve_agent_role(next_task.agent)
+        context_fn = self._context_fn_for_agent(agent_role)
+
+        task_description = f"{next_task.title}\n\n{next_task.description}\n\nProject spec:\n{project.spec}"
+
+        try:
+            result = await self._handle_single_agent(
+                user_message=task_description,
+                agent=agent_role,
+                action=next_task.agent,
+                context_fn=context_fn,
+            )
+
+            # Complete task
+            self.project_manager.complete_task(next_task.id, result.get("response", "")[:2000])
+
+            # Auto-commit if it was a builder task
+            if next_task.agent == "builder":
+                try:
+                    self.gitops.auto_commit(f"Project task: {next_task.title}")
+                except Exception as e:
+                    logger.warning(f"GitOps auto-commit failed: {e}")
+
+            status = self.project_manager.get_status(project.id)
+            progress = f"[{status.completed_tasks}/{status.total_tasks}]"
+
+            return {
+                "response": f"✅ {progress} Completed: **{next_task.title}**\n\n{result.get('response', '')}",
+                "intent": INTENT_PROJECT,
+                "delegated": True,
+            }
+
+        except Exception as e:
+            self.project_manager.fail_task(next_task.id, str(e))
+            return {
+                "response": f"❌ Task '{next_task.title}' failed: {e}",
+                "intent": INTENT_PROJECT,
+                "delegated": False,
+            }
+
+    def _format_project_status(self, status: ProjectStatus) -> str:
+        """Format a project status into a readable message."""
+        progress_bar = f"{status.completed_tasks}/{status.total_tasks}"
+        parts = [
+            f"📊 **{status.project_name}** — {status.status}",
+            f"Progress: {progress_bar} tasks ({status.progress_pct:.0f}%)",
+        ]
+        if status.failed_tasks:
+            parts.append(f"⚠️ {status.failed_tasks} failed task(s)")
+        if status.current_task:
+            parts.append(f"Current: {status.current_task.title}")
+        if status.blockers:
+            parts.append(f"Blockers: {'; '.join(status.blockers)}")
+        return "\n".join(parts)
 
     async def _handle_synthesis_request(self, msg: AgentMessage) -> dict:
         """Handle a synthesis request from another internal component."""
