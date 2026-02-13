@@ -35,7 +35,9 @@ TECH_OTHER="$(state_get 'tech_stack.other' '')"
 
 MODEL_BRAIN="$(state_get 'models.brain' 'claude-sonnet-4')"
 MODEL_BUILDER="$(state_get 'models.builder' 'deepseek-v3')"
-MODEL_RESEARCHER="$(state_get 'models.researcher' 'qwen-max')"
+MODEL_RESEARCHER_THINKING="$(state_get 'models.researcher.thinking' 'kimi-k2.5-thinking')"
+MODEL_RESEARCHER_INSTANT="$(state_get 'models.researcher.instant' 'kimi-k2.5-instant')"
+MODEL_RESEARCHER="$MODEL_RESEARCHER_THINKING"
 MODEL_VERIFIER="$(state_get 'models.verifier' 'qwen-max')"
 MODEL_GUARDIAN="$(state_get 'models.guardian' 'claude-sonnet-4')"
 
@@ -912,7 +914,7 @@ gum style \
     "  👤 User:     $USER_NAME ($USER_PREF)" \
     "  🧠 Cortex:   $BRAIN_NAME ($MODEL_BRAIN)" \
     "  🔨 Builder:  $MODEL_BUILDER" \
-    "  🔬 Researcher:    $MODEL_RESEARCHER" \
+    "  🔬 Researcher:    $MODEL_RESEARCHER_THINKING / $MODEL_RESEARCHER_INSTANT" \
     "  ✅ Verifier:  $MODEL_VERIFIER" \
     "  🛡️ Guardian: $MODEL_GUARDIAN" \
     "  💾 Memory:   $MEMORY_TIER" \
