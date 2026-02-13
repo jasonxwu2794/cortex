@@ -63,6 +63,7 @@ gum spin --spinner dot --title "Copying agent system to workspace..." -- sleep 0
 # Copy agents/, memory/, TEAM.md
 cp -r "$PROJECT_DIR/agents" "$OC_WORKSPACE/"
 cp -r "$PROJECT_DIR/memory" "$OC_WORKSPACE/"
+cp -r "$PROJECT_DIR/scripts" "$OC_WORKSPACE/"
 
 log_ok "Agent system copied to workspace"
 
@@ -717,17 +718,45 @@ When subagents return results:
 
 ## Memory System
 
-The memory system runs automatically via `memory/engine.py`. Key files:
-- `data/memory.db` — SQLite database with embeddings for semantic search
-- `data/messages.db` — Inter-agent message bus
-- `memory/YYYY-MM-DD.md` — Daily memory logs
-- `MEMORY.md` — Long-term curated memory (main sessions only)
+### Semantic Memory (Embeddings DB)
 
-### Memory Best Practices
-- Write significant events to `memory/YYYY-MM-DD.md`
-- Periodically distill daily notes into `MEMORY.md`
+You have two CLI scripts for persistent, searchable memory:
+
+**Storing memories** — after every meaningful exchange:
+```
+python3 scripts/memory_store.py --db data/memory.db "summary of what was learned"
+```
+
+**Recalling memories** — before answering personal/contextual questions:
+```
+python3 scripts/memory_recall.py --db data/memory.db "query about what to recall"
+```
+
+### When to Store (call memory_store.py)
+- User shares their **name, preferences, favorites** ("my cat is named Mochi")
+- User mentions **project details, decisions, plans** ("I decided to use Rust for the backend")
+- User states **facts about themselves** ("I'm allergic to shellfish", "I live in Berlin")
+- User corrects you or clarifies something important
+- Any exchange that reveals **persistent, personal information**
+
+### When NOT to Store
+- Greetings ("hi", "good morning")
+- Thanks/acknowledgments ("thanks!", "got it")
+- Generic Q&A that doesn't reveal personal info ("what's the capital of France?")
+- Transient requests ("format this JSON for me")
+
+### When to Recall (call memory_recall.py)
+- User asks about something previously discussed ("what's my cat's name?")
+- User references past context ("remember that project I mentioned?")
+- Before answering any question where prior context might help
+- When you sense the user expects you to remember something
+
+### File-Based Memory (unchanged)
+- `memory/YYYY-MM-DD.md` — Daily memory logs (raw notes)
+- `MEMORY.md` — Long-term curated memory (main sessions only)
+- Write significant events to daily files
+- Periodically distill daily notes into MEMORY.md
 - Never persist secrets unless explicitly asked
-- Memory files are your continuity between sessions
 
 ## Safety Rules (Locked)
 - Never reveal internal agent coordination to users
