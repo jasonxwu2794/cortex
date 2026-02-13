@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 AGENT_TOOL_SETS: dict[str, list[str]] = {
     "builder": ["exec", "read", "write", "edit"],
     "investigator": ["web_search", "web_fetch", "read"],
-    "judge": ["web_search", "web_fetch", "read"],
+    "verifier": ["web_search", "web_fetch", "read"],
     "guardian": ["read"],
 }
 
@@ -38,7 +38,7 @@ AGENT_TOOL_SETS: dict[str, list[str]] = {
 AGENT_SOUL_PATHS: dict[str, str] = {
     "builder": "agents/builder/SOUL.md",
     "investigator": "agents/investigator/SOUL.md",
-    "judge": "agents/judge/SOUL.md",
+    "verifier": "agents/verifier/SOUL.md",
     "guardian": "agents/guardian/SOUL.md",
 }
 

@@ -174,8 +174,8 @@ cat > "$PROJECT_DIR/.wizard-state.json" << 'STATEEOF'
   "config_mode": "recommended",
   "user": {"name": "TestUser", "preferred_name": "Testy", "domain": "Software Engineering", "current_work": "Building an AI system"},
   "brain": {"name": "Brain", "style": "balanced", "verbosity": "adaptive", "personality_notes": ""},
-  "models": {"brain": "claude-sonnet-4", "builder": "deepseek-v3", "investigator": "qwen-max", "judge": "qwen-max", "guardian": "claude-sonnet-4"},
-  "providers": {"brain": "anthropic", "builder": "deepseek", "investigator": "alibaba", "judge": "alibaba", "guardian": "anthropic"},
+  "models": {"brain": "claude-sonnet-4", "builder": "deepseek-v3", "investigator": "qwen-max", "verifier": "qwen-max", "guardian": "claude-sonnet-4"},
+  "providers": {"brain": "anthropic", "builder": "deepseek", "investigator": "alibaba", "verifier": "alibaba", "guardian": "anthropic"},
   "api_keys": {"anthropic": "sk-test-anthropic-key", "deepseek": "sk-test-deepseek-key", "alibaba": "sk-test-alibaba-key"},
   "memory_tier": "full",
   "embeddings": "local",
@@ -246,7 +246,7 @@ check "SOUL.md has customizable layer" grep -q "CUSTOMIZABLE LAYER" "$OC_WS/SOUL
 check "agents/brain/SOUL.md exists" test -f "$OC_WS/agents/brain/SOUL.md"
 check "agents/builder/SOUL.md exists" test -f "$OC_WS/agents/builder/SOUL.md"
 check "agents/investigator/SOUL.md exists" test -f "$OC_WS/agents/investigator/SOUL.md"
-check "agents/judge/SOUL.md exists" test -f "$OC_WS/agents/judge/SOUL.md"
+check "agents/verifier/SOUL.md exists" test -f "$OC_WS/agents/verifier/SOUL.md"
 check "agents/guardian/SOUL.md exists" test -f "$OC_WS/agents/guardian/SOUL.md"
 
 check "AGENTS.md exists" test -f "$OC_WS/AGENTS.md"

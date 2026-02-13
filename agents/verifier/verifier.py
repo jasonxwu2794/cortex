@@ -1,7 +1,7 @@
 """
-OpenClaw Distro — Judge Agent (Editor / QA)
+OpenClaw Distro — Verifier Agent (Editor / QA)
 
-The Judge verifies claims, detects hallucinations, and maintains the
+The Verifier verifies claims, detects hallucinations, and maintains the
 knowledge cache of verified facts.
 
 Verification pipeline per claim:
@@ -158,11 +158,11 @@ Respond with ONLY a JSON object:
 """
 
 
-# ─── Judge Agent ───────────────────────────────────────────────────────
+# ─── Verifier Agent ───────────────────────────────────────────────────────
 
-class JudgeAgent(BaseAgent):
+class VerifierAgent(BaseAgent):
     """
-    The Judge — Editor and QA agent.
+    The Verifier — Editor and QA agent.
 
     Modes:
     1. Single claim verification (direct LLM call + cache check)
@@ -170,8 +170,8 @@ class JudgeAgent(BaseAgent):
     3. Consistency check (multi-angle questioning of a single claim)
     """
 
-    role = AgentRole.JUDGE
-    name = "judge"
+    role = AgentRole.VERIFIER
+    name = "verifier"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -190,19 +190,19 @@ class JudgeAgent(BaseAgent):
                 self._system_prompt_text = prompt_path.read_text()
             else:
                 self._system_prompt_text = (
-                    "You are the Judge agent. Verify claims conservatively. "
+                    "You are the Verifier agent. Verify claims conservatively. "
                     "Return structured JSON with verifications and confidence scores."
                 )
         return self._system_prompt_text
 
     def _supports_sub_agents(self) -> bool:
-        """Judge uses sub-agents for batch verification."""
+        """Verifier uses sub-agents for batch verification."""
         return True
 
     @property
     def sub_agent_system_prompt(self) -> str:
         return (
-            "You are a Judge sub-agent. Verify a single factual claim. "
+            "You are a Verifier sub-agent. Verify a single factual claim. "
             "Be conservative — when uncertain, say 'unverified' not 'verified'. "
             "Respond with ONLY valid JSON."
         )
@@ -222,13 +222,13 @@ class JudgeAgent(BaseAgent):
             # Generic action from complex task decomposition
             return await self._handle_verify(payload, context)
         else:
-            logger.warning(f"Judge received unknown action: {action}")
+            logger.warning(f"Verifier received unknown action: {action}")
             return await self._handle_verify(payload, context)
 
     async def on_startup(self):
         """Ensure knowledge cache directory exists."""
         self._knowledge_cache_path.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Judge knowledge cache: {self._knowledge_cache_path}")
+        logger.info(f"Verifier knowledge cache: {self._knowledge_cache_path}")
 
     # ─── Verify Flow ──────────────────────────────────────────────────
 
@@ -608,7 +608,7 @@ class JudgeAgent(BaseAgent):
                 category=fact_entry.get("category", "general"),
                 source=fact_entry.get("source"),
                 confidence=fact_entry.get("confidence", 0.8),
-                verified_by="judge",
+                verified_by="verifier",
                 tags=fact_entry.get("tags", []),
             )
             logger.debug(f"Cached fact: {fact_text[:60]}...")

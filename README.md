@@ -10,7 +10,7 @@
 
 ## What Is This?
 
-A team of 5 AI agents that live on your VPS, talk to you on Telegram, and **never forget anything**. One install command runs a beautiful setup wizard. Minutes later, you're chatting with Brain — your personal AI chief of staff — backed by a Builder, Investigator, Judge, and Guardian that work behind the scenes.
+A team of 5 AI agents that live on your VPS, talk to you on Telegram, and **never forget anything**. One install command runs a beautiful setup wizard. Minutes later, you're chatting with Brain — your personal AI chief of staff — backed by a Builder, Investigator, Verifier, and Guardian that work behind the scenes.
 
 No Docker. No Redis. No YAML files. Just one SQLite database and a system that gets smarter every conversation.
 
@@ -20,7 +20,7 @@ No Docker. No Redis. No YAML files. Just one SQLite database and a system that g
 
 | | Feature | Details |
 |---|---------|---------|
-| 🧠 | **5 Specialized Agents** | Brain orchestrates, Builder codes, Investigator researches, Judge verifies, Guardian protects |
+| 🧠 | **5 Specialized Agents** | Brain orchestrates, Builder codes, Investigator researches, Verifier verifies, Guardian protects |
 | 💾 | **Advanced Memory System** | Importance scoring, semantic search, deduplication, automatic consolidation |
 | 🧙 | **One-Command Installer** | Beautiful TUI wizard powered by [gum](https://github.com/charmbracelet/gum) — no config files to edit |
 | 🔗 | **Knowledge Graph** | Memories link to related memories — "likes Python" connects to "builds ML pipelines" |
@@ -63,7 +63,7 @@ That's it. You're talking to a 5-agent AI system with persistent memory.
 | 🧠 **Brain** | Chief of Staff | Talks to you, classifies intent, delegates tasks, synthesizes responses |
 | 🔨 **Builder** | Engineer | Generates code, runs tools, debugs — sandboxed, no internet access |
 | 🔍 **Investigator** | Investigator | Searches the web, reads docs, synthesizes findings in parallel |
-| ⚖️ **Judge** | Judge | Verifies claims, catches hallucinations, updates the knowledge cache |
+| ✅ **Verifier** | Verifier | Verifies claims, catches hallucinations, updates the knowledge cache |
 | 🛡️ **Guardian** | Security Lead | Reviews Builder output, monitors costs, blocks unsafe actions |
 
 ### How They Work Together
@@ -78,8 +78,8 @@ That's it. You're talking to a 5-agent AI system with persistent memory.
           │ delegates
     ┌─────┼─────────────┐
     ▼     ▼     ▼       ▼
-  🔨     🔍    ⚖️      🛡️
-Builder Investigator Judge Guardian
+  🔨     🔍    ✅      🛡️
+Builder Investigator Verifier Guardian
 ```
 
 - Brain is the **only agent you talk to** — it presents a unified experience
@@ -100,7 +100,7 @@ The memory system is what makes this project special. Your agents don't just res
 | **Working Memory** | Current conversation context | Ephemeral |
 | **Short-term Memory** | Recent interactions with embeddings | 7-day half-life |
 | **Long-term Memory** | Consolidated knowledge clusters | Very slow decay |
-| **Knowledge Cache** | Verified facts from Judge & Investigator | **No decay** |
+| **Knowledge Cache** | Verified facts from Verifier & Investigator | **No decay** |
 
 ### Scoring System
 
@@ -167,7 +167,7 @@ MemoryEnhancedMultiAgent/
 │   ├── brain/                  # 🧠 Orchestrator
 │   ├── builder/                # 🔨 Code & tools
 │   ├── investigator/             # 🔍 Investigator
-│   ├── judge/           # ⚖️ Judge
+│   ├── verifier/           # ✅ Verifier
 │   └── guardian/               # 🛡️ Security & costs
 ├── memory/
 │   ├── engine.py               # Memory orchestration

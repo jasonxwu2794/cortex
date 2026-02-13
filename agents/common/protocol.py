@@ -17,7 +17,7 @@ from typing import Any, Optional
 class AgentRole(Enum):
     BRAIN = "brain"
     BUILDER = "builder"
-    JUDGE = "judge"
+    VERIFIER = "verifier"
     INVESTIGATOR = "investigator"
     GUARDIAN = "guardian"
 
@@ -55,12 +55,12 @@ class ContextScope:
         }
 
     @staticmethod
-    def for_judge(
+    def for_verifier(
         claims: list[str],
         knowledge_excerpts: list[dict] | None = None,
     ) -> dict:
         return {
-            "scope": "judge",
+            "scope": "verifier",
             "claims": claims,
             "knowledge_excerpts": knowledge_excerpts or [],
         }

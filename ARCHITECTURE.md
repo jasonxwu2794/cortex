@@ -33,7 +33,7 @@ No containers. No Redis. No separate services. One process, one database file, m
 - **Sub-agents**: YES for multi-component builds (architect → parallel build → integration → test)
 - **Context receives**: Recent code context, file state, available tools, interface contracts
 
-### ⚖️ Judge (Editor/QA)
+### ✅ Verifier (Editor/QA)
 - **Role**: Claim verification, source checking, consistency analysis, hallucination detection, knowledge cache updates
 - **Model**: Precise reasoning model (qwen-max or claude)
 - **Runs as**: Spawned session from Brain
@@ -66,7 +66,7 @@ Sub-agents are concurrent LLM calls within the parent agent's OpenClaw session. 
 |-------|-------------|-------------------|
 | Brain | ✗ Never | N/A |
 | Builder | ✓ Conditional | Multi-component builds only |
-| Judge | ✓ Conditional | Batch verification (3+ claims) |
+| Verifier | ✓ Conditional | Batch verification (3+ claims) |
 | Investigator | ✓ Always | Every query → 3-6 parallel threads |
 | Guardian | ✗ Never | N/A |
 
@@ -79,7 +79,7 @@ All agent communication goes through **SQLite tables** acting as a message bus. 
 @dataclass
 class AgentMessage:
     task_id: str          # UUID
-    from_agent: AgentRole # brain, builder, judge, investigator, guardian
+    from_agent: AgentRole # brain, builder, verifier, investigator, guardian
     to_agent: AgentRole
     action: str           # "build", "verify", "research", "review", "synthesize"
     payload: dict         # Task-specific data
@@ -101,7 +101,7 @@ Brain acts as a privacy/relevance filter. Each agent ONLY receives the context i
 3. **Long-term Memory** — Consolidated knowledge in SQLite. High importance, low decay. Created by consolidation jobs from short-term clusters.
 
 ### Knowledge Cache
-Verified facts stored in SQLite with NO decay. Updated by Judge and Investigator. Examples: confirmed API specs, validated user preferences, verified research findings. Always checked first during retrieval.
+Verified facts stored in SQLite with NO decay. Updated by Verifier and Investigator. Examples: confirmed API specs, validated user preferences, verified research findings. Always checked first during retrieval.
 
 ### Embeddings
 - **Default: Local** — MiniLM-L6-v2 (~80MB, runs on CPU, free, private). ~95% quality of API models for similarity tasks.
@@ -235,7 +235,7 @@ When new memory contradicts an existing one (detected via dedup check + LLM clas
 
 ### Cross-Agent Memory
 - Investigator discovers info during research → writes to knowledge cache
-- Judge verifies claims → writes to knowledge cache
+- Verifier verifies claims → writes to knowledge cache
 - Brain reads knowledge cache automatically on next relevant query
 - System gets smarter over time without user doing anything
 
@@ -248,7 +248,7 @@ When Brain retrieves a memory and user responds:
 ### Memory Permissions
 - **Brain**: Read + write shared memory (gatekeeper)
 - **Builder**: Read shared memory only
-- **Judge**: Read shared memory, write knowledge cache
+- **Verifier**: Read shared memory, write knowledge cache
 - **Investigator**: Read shared memory, write knowledge cache
 - **Guardian**: Read all memory (audit), no writes
 
@@ -257,7 +257,7 @@ Every memory is automatically tagged on ingest by Brain's gating process:
 - **Domain tags**: `domain:python`, `domain:ml`, `domain:devops`
 - **Type tags**: `type:preference`, `type:decision`, `type:fact`, `type:correction`, `type:project`
 - **Project tags**: `project:ml-pipeline`, `project:api-refactor`
-- **Agent tags**: `source:investigator`, `source:judge` (auto-set by source agent)
+- **Agent tags**: `source:investigator`, `source:verifier` (auto-set by source agent)
 
 Tags are stored in the metadata JSON column and indexed for fast filtering. Retrieval can filter by tag before scoring, e.g., "find all memories tagged `project:ml-pipeline` with importance > 0.5."
 
@@ -382,8 +382,8 @@ memory-enhanced-multi-agent/
 │   │   ├── sandbox.py
 │   │   ├── tool_runner.py
 │   │   └── system_prompt.md
-│   ├── judge/
-│   │   ├── judge.py
+│   ├── verifier/
+│   │   ├── verifier.py
 │   │   ├── consistency.py
 │   │   ├── web_verifier.py
 │   │   └── system_prompt.md
@@ -456,7 +456,7 @@ memory-enhanced-multi-agent/
 
 ### Phase 3 — Multi-Agent Sessions
 - Agent interface implementation for OpenClaw sessions
-- Brain spawns Builder, Judge, Investigator, Guardian as sessions
+- Brain spawns Builder, Verifier, Investigator, Guardian as sessions
 - SQLite message bus for communication
 - Context scoping through Brain
 - Sub-agent pools for Builder and Investigator

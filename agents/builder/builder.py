@@ -8,7 +8,7 @@ Key behaviors:
 - Receives build/debug/tool tasks from the Brain
 - Generates structured output (artifacts, code_output, claims)
 - Can spawn sub-agents for multi-component parallel builds
-- Flags factual claims for the Judge to verify
+- Flags factual claims for the Verifier to verify
 - Reports execution results honestly, including errors
 - Never writes to shared memory (read-only access)
 """

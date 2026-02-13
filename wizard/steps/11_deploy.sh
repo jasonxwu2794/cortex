@@ -28,7 +28,7 @@ MESSAGING="$(state_get 'messaging' 'cli')"
 MODEL_BRAIN="$(state_get 'models.brain' 'claude-sonnet-4')"
 MODEL_BUILDER="$(state_get 'models.builder' 'deepseek-v3')"
 MODEL_INVESTIGATOR="$(state_get 'models.investigator' 'qwen-max')"
-MODEL_JUDGE="$(state_get 'models.judge' 'qwen-max')"
+MODEL_VERIFIER="$(state_get 'models.verifier' 'qwen-max')"
 MODEL_GUARDIAN="$(state_get 'models.guardian' 'claude-sonnet-4')"
 
 # --- Ensure directories ---
@@ -103,7 +103,7 @@ cat > "$OC_WORKSPACE/SOUL.md" << SOULEOF
 ### Delegation Rules
 - Route code tasks to Builder via subagent spawn
 - Route research to Investigator via subagent spawn
-- Route verification to Judge via subagent spawn
+- Route verification to Verifier via subagent spawn
 - Consult Guardian on safety-sensitive operations via subagent spawn
 
 ### Context Scoping
@@ -145,7 +145,7 @@ log_ok "Brain SOUL.md generated"
 # Generate other agent SOUL.md files in workspace
 # ============================================================
 mkdir -p "$OC_WORKSPACE/agents/brain" "$OC_WORKSPACE/agents/builder" \
-         "$OC_WORKSPACE/agents/investigator" "$OC_WORKSPACE/agents/judge" \
+         "$OC_WORKSPACE/agents/investigator" "$OC_WORKSPACE/agents/verifier" \
          "$OC_WORKSPACE/agents/guardian"
 
 # Copy Brain SOUL.md into agents dir too
@@ -189,11 +189,11 @@ You are Investigator, the research and synthesis specialist.
 - Flag conflicting information
 EOF
 
-cat > "$OC_WORKSPACE/agents/judge/SOUL.md" << 'EOF'
-# SOUL.md — Judge ⚖️
+cat > "$OC_WORKSPACE/agents/verifier/SOUL.md" << 'EOF'
+# SOUL.md — Verifier ✅
 
 ## Role
-You are Judge, the fact verification and accuracy specialist.
+You are Verifier, the fact verification and accuracy specialist.
 
 ## Responsibilities
 - Verify claims and statements for accuracy
@@ -267,9 +267,9 @@ tools:
   - read
 EOF
 
-# Judge config
-cat > "$OC_WORKSPACE/agents/judge/config.yaml" << EOF
-model: $(brain_model_id_for "$MODEL_JUDGE")
+# Verifier config
+cat > "$OC_WORKSPACE/agents/verifier/config.yaml" << EOF
+model: $(brain_model_id_for "$MODEL_VERIFIER")
 tools:
   - web_search
   - web_fetch
@@ -308,7 +308,7 @@ model_to_provider() {
 
 # Collect unique providers needed
 declare -A NEEDED_PROVIDERS
-for model_var in MODEL_BRAIN MODEL_BUILDER MODEL_INVESTIGATOR MODEL_JUDGE MODEL_GUARDIAN; do
+for model_var in MODEL_BRAIN MODEL_BUILDER MODEL_INVESTIGATOR MODEL_VERIFIER MODEL_GUARDIAN; do
     provider="$(model_to_provider "${!model_var}")"
     NEEDED_PROVIDERS["$provider"]=1
 done
@@ -488,7 +488,7 @@ Use OpenClaw's subagent spawn to delegate tasks. Each subagent runs in its own s
 - Context: Give it the research question + any constraints
 - Example: "Research the best...", "Find documentation for...", "Compare X vs Y"
 
-**Judge ⚖️** — Verification & QA
+**Verifier ✅** — Verification & QA
 - Spawn for: fact-checking claims, reviewing code, validating data, proofreading
 - Context: Give it the content to verify + what to check for
 - Example: "Verify these claims...", "Review this code for bugs...", "Check these numbers"
@@ -501,7 +501,7 @@ Use OpenClaw's subagent spawn to delegate tasks. Each subagent runs in its own s
 ### Delegation Rules
 - **Code tasks** → Builder (always)
 - **Research** → Investigator (always)
-- **Fact-checking** → Judge (when accuracy matters)
+- **Fact-checking** → Verifier (when accuracy matters)
 - **Security-sensitive ops** → Guardian (when risk exists)
 - **Simple questions** → Handle yourself (don't over-delegate)
 - **Complex tasks** → Split across multiple agents in parallel
@@ -511,7 +511,7 @@ When subagents return results:
 - Integrate findings into a natural, cohesive response
 - Don't say "Builder reports..." or "According to Investigator..."
 - Present it as your own knowledge, seamlessly
-- If agents disagree, use your judgment or ask Judge to verify
+- If agents disagree, use your judgment or ask Verifier to verify
 
 ## Memory System
 
@@ -593,7 +593,7 @@ gum style \
     "  🧠 Brain:    $BRAIN_NAME ($MODEL_BRAIN)" \
     "  🔨 Builder:  $MODEL_BUILDER" \
     "  🔍 Investigator:    $MODEL_INVESTIGATOR" \
-    "  ⚖️ Judge:  $MODEL_JUDGE" \
+    "  ✅ Verifier:  $MODEL_VERIFIER" \
     "  🛡️ Guardian: $MODEL_GUARDIAN" \
     "  💾 Memory:   $MEMORY_TIER" \
     "  💬 Channel:  $MESSAGING" \

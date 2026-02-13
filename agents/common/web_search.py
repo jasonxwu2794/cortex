@@ -1,7 +1,7 @@
 """
 OpenClaw Distro — Web Search Client
 
-Pluggable search backend for agents with web access (Investigator, Judge).
+Pluggable search backend for agents with web access (Investigator, Verifier).
 
 Supported backends (in priority order):
 1. Brave Search API  — best privacy, 2000 free req/month

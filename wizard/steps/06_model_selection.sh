@@ -22,7 +22,7 @@ declare -A AGENT_LABELS=(
     [brain]="🧠 Brain (Orchestrator, user-facing)"
     [builder]="🔨 Builder (Code generation)"
     [investigator]="🔍 Investigator (Research, synthesis)"
-    [judge]="⚖️ Judge (Fact verification)"
+    [verifier]="✅ Verifier (Fact verification)"
     [guardian]="🛡️ Guardian (Security review)"
 )
 
@@ -31,11 +31,11 @@ declare -A DEFAULTS=(
     [brain]="Claude Sonnet 4"
     [builder]="DeepSeek"
     [investigator]="Qwen Max"
-    [judge]="Qwen Max"
+    [verifier]="Qwen Max"
     [guardian]="Claude Sonnet 4"
 )
 
-AGENT_ORDER=(brain builder investigator judge guardian)
+AGENT_ORDER=(brain builder investigatorverifierguardian)
 
 # Build display names for gum choose
 MODEL_NAMES=()

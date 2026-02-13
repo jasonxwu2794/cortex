@@ -50,7 +50,7 @@ MAX_CONVERSATION_HISTORY = 50
 # Delegation timeout per agent type (seconds)
 DELEGATION_TIMEOUTS = {
     AgentRole.BUILDER: 180.0,       # Code gen can take a while
-    AgentRole.JUDGE: 90.0,
+    AgentRole.VERIFIER: 90.0,
     AgentRole.INVESTIGATOR: 120.0,
 }
 
@@ -81,7 +81,7 @@ Respond with ONLY this JSON:
   "reasoning": "<one sentence>",
   "subtasks": [
     {{
-      "agent": "builder|judge|investigator",
+      "agent": "builder|verifier|investigator",
       "action": "<verb phrase>",
       "description": "<what this subtask accomplishes>",
       "depends_on": [<indices of subtasks this depends on, empty if independent>]
@@ -99,7 +99,7 @@ Break this complex task into ordered subtasks for specialist agents.
 
 Available agents:
 - builder: Code generation, file operations, tool execution. NO internet. Good at code.
-- judge: Claim verification, source checking. Has web access. Good at precision.
+- verifier: Claim verification, source checking. Has web access. Good at precision.
 - investigator: Information gathering, multi-source synthesis. Has web access. Good at breadth.
 
 Task: {task_description}
@@ -116,7 +116,7 @@ Respond with ONLY this JSON:
 {{
   "subtasks": [
     {{
-      "agent": "builder|judge|investigator",
+      "agent": "builder|verifier|investigator",
       "action": "<action verb>",
       "description": "<detailed task description with enough context to execute independently>",
       "depends_on": []
@@ -138,7 +138,7 @@ Agent results:
 
 Rules:
 1. Lead with the most important/requested information
-2. If the Judge made corrections, incorporate them naturally (don't say "the judge found...")
+2. If the Verifier made corrections, incorporate them naturally (don't say "the verifier found...")
 3. If confidence is low on any claim, note the uncertainty naturally
 4. If the Guardian flagged issues, address them
 5. The user should NOT know about the multi-agent system — write as one unified voice
@@ -309,9 +309,9 @@ class BrainAgent(BaseAgent):
         elif intent == INTENT_FACTUAL:
             response = await self._handle_single_agent(
                 user_message=user_message,
-                agent=AgentRole.JUDGE,
+                agent=AgentRole.VERIFIER,
                 action="verify",
-                context_fn=self._scope_judge_context,
+                context_fn=self._scope_verifier_context,
             )
 
         elif intent == INTENT_RESEARCH:
@@ -452,7 +452,7 @@ class BrainAgent(BaseAgent):
         """
         # Build scoped context
         context = context_fn(user_message)
-        agent_name = agent.value  # e.g. "builder", "investigator", "judge"
+        agent_name = agent.value  # e.g. "builder", "investigator", "verifier"
         timeout = DELEGATION_TIMEOUTS.get(agent, 120.0)
 
         try:
@@ -848,8 +848,8 @@ class BrainAgent(BaseAgent):
             tools=[],  # TODO: populate from config
         )
 
-    def _scope_judge_context(self, user_message: str) -> dict:
-        """Prepare scoped context for the Judge agent."""
+    def _scope_verifier_context(self, user_message: str) -> dict:
+        """Prepare scoped context for the Verifier agent."""
         # Extract claims from the user message and recent conversation
         knowledge_excerpts = []
         if self.memory:
@@ -864,7 +864,7 @@ class BrainAgent(BaseAgent):
             except Exception:
                 pass
 
-        return ContextScope.for_judge(
+        return ContextScope.for_verifier(
             claims=[user_message],
             knowledge_excerpts=knowledge_excerpts,
         )
@@ -881,7 +881,7 @@ class BrainAgent(BaseAgent):
         """Return the appropriate context scoping function for an agent."""
         mapping = {
             AgentRole.BUILDER: self._scope_builder_context,
-            AgentRole.JUDGE: self._scope_judge_context,
+            AgentRole.VERIFIER: self._scope_verifier_context,
             AgentRole.INVESTIGATOR: self._scope_investigator_context,
         }
         return mapping.get(agent_role, self._scope_investigator_context)
@@ -953,7 +953,7 @@ class BrainAgent(BaseAgent):
         """Convert a string agent name to AgentRole enum."""
         mapping = {
             "builder": AgentRole.BUILDER,
-            "judge": AgentRole.JUDGE,
+            "verifier": AgentRole.VERIFIER,
             "investigator": AgentRole.INVESTIGATOR,
             "guardian": AgentRole.GUARDIAN,
         }

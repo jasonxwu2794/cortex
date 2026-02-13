@@ -10,7 +10,7 @@ OpenClaw sessions, SQLite, wizard. Get it running on a $5 VPS in under 10 minute
 - [ ] Brain agent as main OpenClaw session (single-agent mode)
 - [ ] Memory engine — store/retrieve with importance + recency scoring
 - [ ] Agent interface (portable abstraction over OpenClaw sessions)
-- [ ] Multi-agent: Brain spawns Builder, Judge, Investigator, Guardian
+- [ ] Multi-agent: Brain spawns Builder, Verifier, Investigator, Guardian
 - [ ] Context scoping — Brain filters what each agent sees
 - [ ] Sub-agent pools for Builder (parallel builds) and Investigator (parallel search)
 - [ ] Knowledge cache with verified facts (no decay)
@@ -21,7 +21,7 @@ Docker containers with proper isolation. For users who want security boundaries 
 
 - [ ] Dockerfiles per agent
 - [ ] Docker Compose orchestration
-- [ ] Network isolation (sandbox for Builder, external for Investigator/Judge)
+- [ ] Network isolation (sandbox for Builder, external for Investigator/Verifier)
 - [ ] Resource limits per container (CPU, memory, disk)
 - [ ] Optional Redis message bus (replaces SQLite bus for multi-container)
 - [ ] Volume-based memory sharing with permissions

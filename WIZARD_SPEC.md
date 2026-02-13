@@ -194,7 +194,7 @@ Brain's `SOUL.md` is generated with a clear separation:
 ### Delegation Rules
 - Route code tasks to Builder
 - Route research to Investigator
-- Route verification to Judge
+- Route verification to Verifier
 - Consult Guardian on safety-sensitive operations
 
 ### Context Scoping
@@ -252,7 +252,7 @@ Other agents do **NOT** get personality customization. They have fixed, professi
 | 🧠 **Brain** | Orchestrator, user-facing | Claude, Kimi, Qwen | Best reasoning, personality |
 | 🔨 **Builder** | Code generation, execution | DeepSeek, Codestral | Fast + cheap for code |
 | 🔍 **Investigator** (Investigator) | Research, synthesis | Qwen, Claude | Good at synthesis |
-| ⚖️ **Judge** (Judge) | Verification, accuracy | Claude, Qwen | Precise, detail-oriented |
+| ✅ **Verifier** (Verifier) | Verification, accuracy | Claude, Qwen | Precise, detail-oriented |
 | 🛡️ **Guardian** | Security, safety review | Claude | Security-minded |
 
 ### Recommended Defaults
@@ -262,7 +262,7 @@ Other agents do **NOT** get personality customization. They have fixed, professi
 | Brain | Claude Sonnet 4 |
 | Builder | DeepSeek |
 | Investigator | Qwen Max |
-| Judge | Qwen Max |
+| Verifier | Qwen Max |
 | Guardian | Claude Sonnet 4 |
 
 ### Cost Estimates
@@ -433,8 +433,8 @@ Telegram Bot Setup
 | `agents/builder/config.yaml` | Builder agent config |
 | `agents/investigator/SOUL.md` | Investigator/Investigator role definition (fixed) |
 | `agents/investigator/config.yaml` | Investigator agent config |
-| `agents/judge/SOUL.md` | Judge role definition (fixed) |
-| `agents/judge/config.yaml` | Judge agent config |
+| `agents/verifier/SOUL.md` | Verifier role definition (fixed) |
+| `agents/verifier/config.yaml` | Verifier agent config |
 | `agents/guardian/SOUL.md` | Guardian role definition (fixed) |
 | `agents/guardian/config.yaml` | Guardian agent config |
 | `openclaw.yaml` | Main OpenClaw gateway config |
@@ -450,7 +450,7 @@ Telegram Bot Setup
    Hey Jase! 👋 I'm Brain, your AI assistant. I'm all set up and ready to help
    with your Machine Learning work. What would you like to start with?
    ```
-5. Other agents (Builder, Investigator, Judge, Guardian) are configured but **dormant** — they only spawn when Brain delegates to them
+5. Other agents (Builder, Investigator, Verifier, Guardian) are configured but **dormant** — they only spawn when Brain delegates to them
 
 ### gum Components Used
 
@@ -469,7 +469,7 @@ These are pre-set and not wizard-configurable (keeping the wizard focused):
 | 🧠 | Brain | Brain | Orchestrator, user-facing |
 | 🔨 | Builder | Builder | Code generation, execution |
 | 🔍 | Investigator | Investigator | Research, web synthesis |
-| ⚖️ | Judge | Judge | Fact verification, accuracy |
+| ✅ | Verifier | Verifier | Fact verification, accuracy |
 | 🛡️ | Guardian | Guardian | Security review, safety |
 
 > Only Brain's name is customizable (Step 5). Other agents use fixed identities.
@@ -509,7 +509,7 @@ Running `./wizard.sh --reconfigure`:
     "brain": "claude-sonnet-4",
     "builder": "deepseek-v3",
     "investigator": "qwen-max",
-    "judge": "qwen-max",
+    "verifier": "qwen-max",
     "guardian": "claude-sonnet-4"
   },
   "memory_tier": "full",
