@@ -197,6 +197,17 @@ When Brain retrieves a memory and user responds:
 - **Scout**: Read shared memory, write knowledge cache
 - **Guardian**: Read all memory (audit), no writes
 
+### Auto-Tagging
+Every memory is automatically tagged on ingest by Brain's gating process:
+- **Domain tags**: `domain:python`, `domain:ml`, `domain:devops`
+- **Type tags**: `type:preference`, `type:decision`, `type:fact`, `type:correction`, `type:project`
+- **Project tags**: `project:ml-pipeline`, `project:api-refactor`
+- **Agent tags**: `source:scout`, `source:checker` (auto-set by source agent)
+
+Tags are stored in the metadata JSON column and indexed for fast filtering. Retrieval can filter by tag before scoring, e.g., "find all memories tagged `project:ml-pipeline` with importance > 0.5."
+
+Tags are inferred automatically — user never has to tag anything manually.
+
 ### SQLite Schema Overview
 ```sql
 -- Core memories table
@@ -206,6 +217,7 @@ CREATE TABLE memories (
     embedding BLOB,
     tier TEXT CHECK(tier IN ('short_term', 'long_term')),
     importance REAL DEFAULT 0.5,
+    tags TEXT,  -- comma-separated tags for fast filtering
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     access_count INTEGER DEFAULT 0,
