@@ -17,13 +17,15 @@ case "$QUICK_CHOICE" in
     "Use recommended"*)
         state_set "tech_stack.language" "python"
         state_set "tech_stack.frameworks" "FastAPI,React"
+        state_set "tech_stack.css" "Tailwind CSS"
         state_set "tech_stack.package_manager" "pip"
         state_set "tech_stack.database" "SQLite"
         state_set "tech_stack.other" ""
         wizard_divider
         gum style --bold "Tech Stack Configuration (defaults):"
-        echo "  Language:        python"
+        echo "  Language:        Python"
         echo "  Frameworks:      FastAPI, React"
+        echo "  CSS/UI:          Tailwind CSS"
         echo "  Package Manager: pip"
         echo "  Database:        SQLite"
         wizard_success "Tech stack defaults applied!"
@@ -108,6 +110,16 @@ if [ "$FRONTEND" != "None" ] && [ -n "$FRONTEND" ]; then
     fi
 fi
 
+# --- CSS / UI Framework ---
+echo ""
+gum style --foreground 212 "CSS / UI framework:"
+CSS_OPTS=("Tailwind CSS" "Plain CSS" "Bootstrap" "Material UI" "Chakra UI" "shadcn/ui" "No preference")
+CSS_CHOICE="$(gum choose "${CSS_OPTS[@]}")"
+if [ "$CSS_CHOICE" = "No preference" ]; then
+    CSS_CHOICE=""
+fi
+state_set "tech_stack.css" "$CSS_CHOICE"
+
 # --- Package Manager ---
 echo ""
 gum style --foreground 212 "Preferred package manager:"
@@ -154,6 +166,7 @@ wizard_divider
 gum style --bold "Tech Stack Configuration:"
 echo "  Language:        $LANGUAGE"
 echo "  Frameworks:      ${FRAMEWORKS:-none selected}"
+echo "  CSS/UI:          ${CSS_CHOICE:-none}"
 echo "  Package Manager: ${PKG_MANAGER:-default}"
 echo "  Database:        $DATABASE"
 [ -n "$OTHER_PREFS" ] && echo "  Other:           $OTHER_PREFS"

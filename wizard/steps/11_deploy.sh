@@ -29,6 +29,7 @@ VERBOSE_MODE="$(state_get 'brain.verbose_mode' 'verbose')"
 TECH_LANGUAGE="$(state_get 'tech_stack.language' '')"
 TECH_FRAMEWORKS="$(state_get 'tech_stack.frameworks' '')"
 TECH_PKG_MANAGER="$(state_get 'tech_stack.package_manager' '')"
+TECH_CSS="$(state_get 'tech_stack.css' '')"
 TECH_DATABASE="$(state_get 'tech_stack.database' '')"
 TECH_OTHER="$(state_get 'tech_stack.other' '')"
 
@@ -104,6 +105,7 @@ cat << TECHEOF
 - **Language:** $TECH_LANGUAGE
 $([ -n "$TECH_FRAMEWORKS" ] && echo "- **Frameworks:** $TECH_FRAMEWORKS")
 $([ -n "$TECH_PKG_MANAGER" ] && echo "- **Package Manager:** $TECH_PKG_MANAGER")
+$([ -n "$TECH_CSS" ] && echo "- **CSS/UI:** $TECH_CSS")
 $([ -n "$TECH_DATABASE" ] && echo "- **Database:** $TECH_DATABASE")
 $([ -n "$TECH_OTHER" ] && echo "- **Other:** $TECH_OTHER")
 TECHEOF
@@ -224,6 +226,7 @@ cat << TECHEOF
 - Default to $TECH_LANGUAGE unless task specifies otherwise
 $([ -n "$TECH_FRAMEWORKS" ] && echo "- Use $TECH_FRAMEWORKS when applicable")
 $([ -n "$TECH_PKG_MANAGER" ] && echo "- Package management: $TECH_PKG_MANAGER")
+$([ -n "$TECH_CSS" ] && echo "- CSS/UI: $TECH_CSS")
 $([ -n "$TECH_DATABASE" ] && echo "- Database: $TECH_DATABASE")
 $([ -n "$TECH_OTHER" ] && echo "- Additional: $TECH_OTHER")
 TECHEOF
