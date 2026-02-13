@@ -250,7 +250,7 @@ Other agents do **NOT** get personality customization. They have fixed, professi
 
 | Agent | Role | Recommended Models | Optimization |
 |-------|------|--------------------|-------------|
-| 🧠 **Brain** | Orchestrator, user-facing | Claude, GPT-4, Kimi | Best reasoning, personality |
+| 🧠 **Brain** | Orchestrator, user-facing | Claude, Kimi, Qwen | Best reasoning, personality |
 | 🔨 **Builder** | Code generation, execution | DeepSeek, Codestral | Fast + cheap for code |
 | 🔬 **Scout** (Researcher) | Research, synthesis | Qwen, Claude | Good at synthesis |
 | ✅ **Checker** (Fact Checker) | Verification, accuracy | Claude, Qwen | Precise, detail-oriented |
@@ -274,8 +274,9 @@ Display approximate monthly costs per model choice (assuming moderate usage):
 Model Selection — Brain 🧠
 
   Claude Sonnet 4   ~$15-30/mo  ████████░░  [Recommended]
-  GPT-4o            ~$20-40/mo  █████████░
   Kimi              ~$5-15/mo   █████░░░░░
+  Qwen Max          ~$8-20/mo   ██████░░░░
+  MiniMax           ~$5-12/mo   █████░░░░░
   Claude Opus 4     ~$40-80/mo  ██████████  [Premium]
 
   ↑↓ navigate  enter select  esc back
@@ -308,7 +309,7 @@ Model Selection — Brain 🧠
 | Provider | Key URL |
 |----------|---------|
 | Anthropic (Claude) | `https://console.anthropic.com/settings/keys` |
-| OpenAI (GPT-4) | `https://platform.openai.com/api-keys` |
+| MiniMax | `https://www.minimaxi.com/platform` |
 | DeepSeek | `https://platform.deepseek.com/api_keys` |
 | Qwen (Alibaba) | `https://dashscope.console.aliyun.com/apiKey` |
 | Moonshot (Kimi) | `https://platform.moonshot.cn/console/api-keys` |
