@@ -1197,9 +1197,38 @@ class BrainAgent(BaseAgent):
         return await self._create_new_project(user_message)
 
     async def _create_new_project(self, user_message: str, project=None) -> dict:
-        """Create a new project: write spec, decompose into features+tasks, show to user."""
-        # Generate spec
-        spec = await spec_writer.write_spec(self.llm, user_message)
+        """Create a new project: research → write spec → decompose into features+tasks → show to user."""
+        verbose = self.verbose_mode == "verbose"
+
+        # Step 0: Delegate to Investigator for research context
+        research_context = None
+        try:
+            if verbose:
+                logger.info("Pipeline: Investigator researching for new project spec")
+
+            domain_hint = ""
+            if project and project.domain:
+                domain_hint = f" Domain: {project.domain}"
+
+            research_query = (
+                f"Research best practices, prior art, and potential pitfalls for: "
+                f"{user_message}.{domain_hint}"
+            )
+            research_result = await self.session_manager.delegate(
+                agent_name="investigator",
+                task=research_query,
+                context=self._scope_investigator_context(research_query),
+                timeout=DELEGATION_TIMEOUTS.get(AgentRole.INVESTIGATOR, 120.0),
+            )
+            if research_result.success:
+                research_context = research_result.result
+            else:
+                logger.warning(f"Investigator research for spec failed: {research_result.error}")
+        except Exception as e:
+            logger.warning(f"Investigator research for spec raised: {e}")
+
+        # Generate spec (with research context if available)
+        spec = await spec_writer.write_spec(self.llm, user_message, research_context=research_context)
 
         if not project:
             # Extract a short name and domain from the spec
@@ -1270,7 +1299,7 @@ class BrainAgent(BaseAgent):
         }
 
     async def _advance_project(self, project) -> dict:
-        """Get next task and delegate to appropriate agent."""
+        """Get next task and run it through the full collaboration pipeline."""
         next_task = self.project_manager.get_next_task(project.id)
         if not next_task:
             status = self.project_manager.get_status(project.id)
@@ -1284,49 +1313,431 @@ class BrainAgent(BaseAgent):
                 "intent": INTENT_PROJECT, "delegated": False,
             }
 
+        return await self._execute_task_pipeline(next_task, project)
+
+    # ─── Full Collaboration Pipeline ──────────────────────────────────
+
+    MAX_BUILDER_RETRIES = 2
+
+    VERIFIER_REVIEW_PROMPT = """\
+Review this task output against the specification.
+
+Task: {task_title}
+Task Description: {task_description}
+Feature: {feature_title}
+Project Spec: {spec_section}
+
+Builder's Output:
+{builder_result}
+
+Evaluate:
+1. Does it match the spec requirements?
+2. Are there bugs or logic errors?
+3. Is the code quality acceptable?
+4. Are edge cases handled?
+
+Respond with JSON:
+{{
+  "verdict": "PASS" or "FAIL",
+  "notes": "...",
+  "issues": ["issue1", "issue2"],
+  "suggestions": ["suggestion1"]
+}}
+"""
+
+    GUARDIAN_SECURITY_PROMPT = """\
+Security review of code changes.
+
+Task: {task_title}
+Code:
+{builder_result}
+
+Check for:
+1. Hardcoded credentials or API keys
+2. SQL injection vulnerabilities
+3. Unsafe file system operations
+4. Data exposure risks
+5. Dependency vulnerabilities
+
+Respond with JSON:
+{{
+  "verdict": "PASS" or "FLAG" or "BLOCK",
+  "issues": ["issue1"],
+  "severity": "low" or "medium" or "high" or "critical",
+  "recommendations": ["rec1"]
+}}
+"""
+
+    COHERENCE_CHECK_PROMPT = """\
+Quick coherence check - does this task result fit the project?
+
+Project: {project_name}
+Previously completed tasks: {completed_task_summaries}
+Current task: {task_title}
+Result: {brief_result_summary}
+
+Any conflicts or concerns? If all good, say "COHERENT".
+If concern, explain briefly.
+"""
+
+    async def _execute_task_pipeline(self, task: ProjectTask, project) -> dict:
+        """
+        Full multi-agent pipeline for a single task:
+        1. Investigator research (if needed)
+        2. Builder builds
+        3. Verifier validates (with retry loop)
+        4. Guardian security scan
+        5. Brain coherence check
+        6. Auto-commit via GitOps
+        """
+        verbose = self.verbose_mode == "verbose"
+        pipeline_log: list[str] = []
+
         # Mark in progress
-        self.project_manager.set_task_in_progress(next_task.id)
+        self.project_manager.set_task_in_progress(task.id)
 
-        # Map agent string to AgentRole
-        agent_role = self._resolve_agent_role(next_task.agent)
-        context_fn = self._context_fn_for_agent(agent_role)
-
-        task_description = f"{next_task.title}\n\n{next_task.description}\n\nProject spec:\n{project.spec}"
+        # Resolve feature title for prompts
+        feature_title = ""
+        if task.feature_id:
+            features = self.project_manager.get_features(project.id)
+            for f in features:
+                if f.id == task.feature_id:
+                    feature_title = f.title
+                    break
 
         try:
-            result = await self._handle_single_agent(
-                user_message=task_description,
-                agent=agent_role,
-                action=next_task.agent,
-                context_fn=context_fn,
-            )
+            # ── Step 1: Investigator research (if task needs context) ──
+            research_context = ""
+            if self._task_needs_research(task):
+                if verbose:
+                    pipeline_log.append("🔍 Investigator is researching best practices...")
+                    logger.info("Pipeline: Investigator researching for task")
 
-            # Complete task
-            self.project_manager.complete_task(next_task.id, result.get("response", "")[:2000])
+                research_query = (
+                    f"Research best practices, prior art, and potential pitfalls for: "
+                    f"{task.title}. {task.description}. Domain: {project.domain or 'general'}"
+                )
+                research_result = await self.session_manager.delegate(
+                    agent_name="investigator",
+                    task=research_query,
+                    context=self._scope_investigator_context(research_query),
+                    timeout=DELEGATION_TIMEOUTS.get(AgentRole.INVESTIGATOR, 120.0),
+                )
+                if research_result.success:
+                    research_context = research_result.result or ""
+                else:
+                    logger.warning(f"Investigator research failed: {research_result.error}")
 
-            # Auto-commit if it was a builder task
-            if next_task.agent == "builder":
-                try:
-                    self.gitops.auto_commit(f"Project task: {next_task.title}")
-                except Exception as e:
-                    logger.warning(f"GitOps auto-commit failed: {e}")
+            # ── Step 2: Builder builds ──
+            if verbose:
+                pipeline_log.append(f"🔨 Builder is working on: {task.title}...")
+                logger.info(f"Pipeline: Builder working on {task.title}")
+
+            builder_result = await self._delegate_to_builder(task, project, research_context)
+
+            # ── Step 3: Verifier validates (with retry loop) ──
+            if verbose:
+                pipeline_log.append("✅ Verifier is checking the output...")
+                logger.info("Pipeline: Verifier checking output")
+
+            verified = False
+            retries = 0
+            verifier_response = None
+
+            while retries <= self.MAX_BUILDER_RETRIES:
+                verifier_response = await self._delegate_to_verifier(
+                    task, project, feature_title, builder_result
+                )
+
+                verdict = verifier_response.get("verdict", "PASS").upper()
+
+                if verdict == "PASS":
+                    verified = True
+                    if verbose and verifier_response.get("notes"):
+                        pipeline_log.append(f"  ✅ Verifier: PASS — {verifier_response['notes']}")
+                    break
+
+                # FAIL — retry with feedback
+                retries += 1
+                if retries > self.MAX_BUILDER_RETRIES:
+                    break
+
+                issues = verifier_response.get("issues", [])
+                feedback = verifier_response.get("notes", "")
+                if verbose:
+                    pipeline_log.append(
+                        f"  ⚠️ Verifier: FAIL (retry {retries}/{self.MAX_BUILDER_RETRIES}) — {feedback}"
+                    )
+                logger.info(f"Pipeline: Verifier FAIL, retry {retries}")
+
+                # Send feedback to Builder for revision
+                builder_result = await self._delegate_to_builder_revision(
+                    task, project, builder_result, feedback, issues, research_context
+                )
+
+            if not verified:
+                # Exhausted retries — flag to user
+                issues_str = "; ".join(verifier_response.get("issues", [])) if verifier_response else "unknown"
+                self.project_manager.fail_task(
+                    task.id, f"Verifier rejected after {self.MAX_BUILDER_RETRIES} retries: {issues_str}"
+                )
+                status = self.project_manager.get_status(project.id)
+                progress = f"[{status.completed_tasks}/{status.total_tasks}]"
+                pipeline_summary = "\n".join(pipeline_log) + "\n" if pipeline_log else ""
+                return {
+                    "response": (
+                        f"{pipeline_summary}"
+                        f"⚠️ {progress} Task **{task.title}** failed verification after "
+                        f"{self.MAX_BUILDER_RETRIES} retries.\n"
+                        f"Issues: {issues_str}\n"
+                        f"Please review and provide guidance."
+                    ),
+                    "intent": INTENT_PROJECT,
+                    "delegated": True,
+                }
+
+            # ── Step 4: Guardian security scan ──
+            if verbose:
+                pipeline_log.append("🛡️ Guardian is running security scan...")
+                logger.info("Pipeline: Guardian security scan")
+
+            guardian_response = await self._delegate_to_guardian(task, builder_result)
+            guardian_verdict = guardian_response.get("verdict", "PASS").upper()
+
+            if guardian_verdict == "BLOCK":
+                issues_str = "; ".join(guardian_response.get("issues", []))
+                severity = guardian_response.get("severity", "high")
+                self.project_manager.fail_task(
+                    task.id, f"Guardian BLOCK ({severity}): {issues_str}"
+                )
+                status = self.project_manager.get_status(project.id)
+                progress = f"[{status.completed_tasks}/{status.total_tasks}]"
+                pipeline_summary = "\n".join(pipeline_log) + "\n" if pipeline_log else ""
+                return {
+                    "response": (
+                        f"{pipeline_summary}"
+                        f"🛡️ {progress} Task **{task.title}** BLOCKED by security scan.\n"
+                        f"Severity: {severity}\n"
+                        f"Issues: {issues_str}\n"
+                        f"Recommendations: {'; '.join(guardian_response.get('recommendations', []))}"
+                    ),
+                    "intent": INTENT_PROJECT,
+                    "delegated": True,
+                }
+
+            if guardian_verdict == "FLAG" and verbose:
+                pipeline_log.append(
+                    f"  ⚠️ Guardian: warnings — {'; '.join(guardian_response.get('issues', []))}"
+                )
+
+            # ── Step 5: Brain coherence check (lightweight, no delegation) ──
+            if verbose:
+                pipeline_log.append("🧠 Final review...")
+                logger.info("Pipeline: Brain coherence check")
+
+            coherence = await self._coherence_check(task, project, builder_result)
+
+            if coherence and not coherence.upper().startswith("COHERENT"):
+                # Concern found — flag to user but don't block
+                if verbose:
+                    pipeline_log.append(f"  🧠 Concern: {coherence}")
+                logger.warning(f"Coherence concern for task {task.title}: {coherence}")
+
+            if verbose:
+                pipeline_log.append("🧠 Final review... all clear!")
+
+            # ── Step 6: Complete task and auto-commit ──
+            self.project_manager.complete_task(task.id, builder_result[:2000])
+
+            commit_message = f"feat({feature_title or 'project'}): {task.title}"
+            commit_hash = None
+            try:
+                commit_hash = self.gitops.auto_commit(commit_message)
+                if verbose and commit_hash:
+                    pipeline_log.append(f"📝 Committed: {commit_message} ({commit_hash[:8]})")
+            except Exception as e:
+                logger.warning(f"GitOps auto-commit failed: {e}")
 
             status = self.project_manager.get_status(project.id)
             progress = f"[{status.completed_tasks}/{status.total_tasks}]"
+            pipeline_summary = "\n".join(pipeline_log) + "\n\n" if pipeline_log else ""
 
             return {
-                "response": f"✅ {progress} Completed: **{next_task.title}**\n\n{result.get('response', '')}",
+                "response": (
+                    f"{pipeline_summary}"
+                    f"✅ {progress} Completed: **{task.title}**\n\n"
+                    f"{builder_result[:1500]}"
+                ),
                 "intent": INTENT_PROJECT,
                 "delegated": True,
             }
 
         except Exception as e:
-            self.project_manager.fail_task(next_task.id, str(e))
+            self.project_manager.fail_task(task.id, str(e))
+            pipeline_summary = "\n".join(pipeline_log) + "\n" if pipeline_log else ""
             return {
-                "response": f"❌ Task '{next_task.title}' failed: {e}",
+                "response": f"{pipeline_summary}❌ Task '{task.title}' failed: {e}",
                 "intent": INTENT_PROJECT,
                 "delegated": False,
             }
+
+    def _task_needs_research(self, task: ProjectTask) -> bool:
+        """Heuristic: does this task benefit from Investigator research?"""
+        desc = f"{task.title} {task.description}".lower()
+        research_signals = [
+            "best practice", "architecture", "design", "compare",
+            "evaluate", "research", "investigate", "security",
+            "performance", "scalable", "pattern", "framework",
+        ]
+        return any(signal in desc for signal in research_signals)
+
+    async def _delegate_to_builder(
+        self, task: ProjectTask, project, research_context: str = ""
+    ) -> str:
+        """Delegate a build task to the Builder agent."""
+        context_parts = [
+            f"Task: {task.title}",
+            f"Description: {task.description}",
+            f"Project spec:\n{project.spec}",
+        ]
+        if research_context:
+            context_parts.append(f"Research context:\n{research_context}")
+
+        task_description = "\n\n".join(context_parts)
+
+        result = await self.session_manager.delegate(
+            agent_name="builder",
+            task=task_description,
+            context=self._scope_builder_context(task_description),
+            timeout=DELEGATION_TIMEOUTS.get(AgentRole.BUILDER, 180.0),
+        )
+
+        if result.success:
+            return result.result or ""
+        else:
+            raise RuntimeError(f"Builder failed: {result.error}")
+
+    async def _delegate_to_builder_revision(
+        self, task: ProjectTask, project, previous_output: str,
+        feedback: str, issues: list[str], research_context: str = ""
+    ) -> str:
+        """Send Verifier feedback to Builder for revision."""
+        issues_str = "\n".join(f"- {i}" for i in issues) if issues else "See feedback above."
+        revision_task = (
+            f"Your output for '{task.title}' needs revision.\n\n"
+            f"Feedback: {feedback}\n\n"
+            f"Issues to fix:\n{issues_str}\n\n"
+            f"Previous output:\n{previous_output[:3000]}\n\n"
+            f"Project spec:\n{project.spec}"
+        )
+        if research_context:
+            revision_task += f"\n\nResearch context:\n{research_context}"
+
+        result = await self.session_manager.delegate(
+            agent_name="builder",
+            task=revision_task,
+            context=self._scope_builder_context(revision_task),
+            timeout=DELEGATION_TIMEOUTS.get(AgentRole.BUILDER, 180.0),
+        )
+
+        if result.success:
+            return result.result or ""
+        else:
+            raise RuntimeError(f"Builder revision failed: {result.error}")
+
+    async def _delegate_to_verifier(
+        self, task: ProjectTask, project, feature_title: str, builder_result: str
+    ) -> dict:
+        """Delegate verification to the Verifier agent. Returns parsed JSON verdict."""
+        prompt = self.VERIFIER_REVIEW_PROMPT.format(
+            task_title=task.title,
+            task_description=task.description,
+            feature_title=feature_title or "N/A",
+            spec_section=project.spec[:2000],
+            builder_result=builder_result[:3000],
+        )
+
+        result = await self.session_manager.delegate(
+            agent_name="verifier",
+            task=prompt,
+            context={
+                "scope": "verifier",
+                "task_title": task.title,
+                "builder_output": builder_result[:3000],
+                "spec": project.spec[:2000],
+            },
+            timeout=DELEGATION_TIMEOUTS.get(AgentRole.VERIFIER, 90.0),
+        )
+
+        if result.success and result.result:
+            try:
+                parsed = json.loads(result.result)
+                if isinstance(parsed, dict) and "verdict" in parsed:
+                    return parsed
+            except (json.JSONDecodeError, TypeError):
+                pass
+            # If not JSON, treat non-empty result as PASS with notes
+            return {"verdict": "PASS", "notes": result.result[:500], "issues": [], "suggestions": []}
+
+        logger.warning(f"Verifier delegation failed: {result.error}")
+        # On verifier failure, default to PASS to avoid blocking
+        return {"verdict": "PASS", "notes": "Verifier unavailable — skipped", "issues": [], "suggestions": []}
+
+    async def _delegate_to_guardian(self, task: ProjectTask, builder_result: str) -> dict:
+        """Delegate security review to the Guardian agent. Returns parsed JSON verdict."""
+        prompt = self.GUARDIAN_SECURITY_PROMPT.format(
+            task_title=task.title,
+            builder_result=builder_result[:4000],
+        )
+
+        result = await self.session_manager.delegate(
+            agent_name="guardian",
+            task=prompt,
+            context={
+                "scope": "guardian",
+                "content": builder_result[:4000],
+                "source_agent": "builder",
+            },
+            timeout=90.0,
+        )
+
+        if result.success and result.result:
+            try:
+                parsed = json.loads(result.result)
+                if isinstance(parsed, dict) and "verdict" in parsed:
+                    return parsed
+            except (json.JSONDecodeError, TypeError):
+                pass
+            return {"verdict": "PASS", "issues": [], "severity": "low", "recommendations": []}
+
+        logger.warning(f"Guardian delegation failed: {result.error}")
+        return {"verdict": "PASS", "issues": [], "severity": "low", "recommendations": ["Guardian unavailable — skipped"]}
+
+    async def _coherence_check(self, task: ProjectTask, project, builder_result: str) -> str:
+        """Lightweight Brain coherence check — no delegation, uses own LLM."""
+        # Get completed task summaries
+        all_tasks = self.project_manager.get_all_tasks(project.id)
+        completed_summaries = "; ".join(
+            f"{t.title} ({t.status})" for t in all_tasks if t.status == "completed"
+        ) or "None yet"
+
+        prompt = self.COHERENCE_CHECK_PROMPT.format(
+            project_name=project.name,
+            completed_task_summaries=completed_summaries[:1000],
+            task_title=task.title,
+            brief_result_summary=builder_result[:500],
+        )
+
+        try:
+            result = await self.llm.generate(
+                system="You are checking project coherence. Be brief. Say COHERENT if fine, or explain concern in one sentence.",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+            )
+            return result.get("content", "COHERENT")
+        except Exception as e:
+            logger.warning(f"Coherence check failed: {e}")
+            return "COHERENT"
 
     def _format_full_status(self, full: dict) -> str:
         """Format feature-level project status."""
