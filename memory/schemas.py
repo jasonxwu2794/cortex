@@ -26,7 +26,9 @@ CREATE TABLE IF NOT EXISTS knowledge_cache (
     verified_by TEXT,
     verified_at TIMESTAMP,
     confidence REAL DEFAULT 1.0,
-    metadata JSON
+    metadata JSON,
+    last_accessed_at TIMESTAMP,
+    access_count INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS memory_links (
@@ -55,5 +57,12 @@ def init_db(db_path: str | Path) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(SCHEMA_SQL)
+    # Migrate: add graduation columns if missing (for existing DBs)
+    cursor = conn.execute("PRAGMA table_info(knowledge_cache)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if "last_accessed_at" not in columns:
+        conn.execute("ALTER TABLE knowledge_cache ADD COLUMN last_accessed_at TIMESTAMP")
+    if "access_count" not in columns:
+        conn.execute("ALTER TABLE knowledge_cache ADD COLUMN access_count INTEGER DEFAULT 0")
     conn.commit()
     return conn

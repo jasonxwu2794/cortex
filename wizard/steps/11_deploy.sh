@@ -479,7 +479,6 @@ CRON_LINE="$CRON_SCHEDULE $CRON_CMD $CRON_MARKER"
 # Read existing crontab, append if not already there, write back
 EXISTING_CRON="$(crontab -l 2>/dev/null || true)"
 if echo "$EXISTING_CRON" | grep -qF "openclaw-memory-consolidation"; then
-    # Replace existing line
     EXISTING_CRON="$(echo "$EXISTING_CRON" | grep -vF "openclaw-memory-consolidation")"
 fi
 echo "${EXISTING_CRON:+$EXISTING_CRON
@@ -489,6 +488,38 @@ log_ok "Cron job installed ($CRON_DESC, TZ: $USER_TZ)"
 log_info "  Schedule: $CRON_SCHEDULE"
 log_info "  Command:  python3 -m memory.consolidation_runner --db-path data/memory.db --tier $CRON_TIER"
 log_info "  Log:      $OC_WORKSPACE/data/consolidation.log"
+
+# ============================================================
+# 5c. Set up additional cron jobs (health, backup, rotation)
+# ============================================================
+log_info "Setting up maintenance cron jobs..."
+
+EXISTING_CRON="$(crontab -l 2>/dev/null || true)"
+
+# Health check — every 30 min
+HEALTH_MARKER="# openclaw-health-check"
+HEALTH_LINE="*/30 * * * * cd $OC_WORKSPACE && bash scripts/health_check.sh >> data/health.log 2>&1 $HEALTH_MARKER"
+if echo "$EXISTING_CRON" | grep -qF "openclaw-health-check"; then
+    EXISTING_CRON="$(echo "$EXISTING_CRON" | grep -vF "openclaw-health-check")"
+fi
+
+# Memory backup — daily at 4am
+BACKUP_MARKER="# openclaw-memory-backup"
+BACKUP_LINE="0 4 * * * cd $OC_WORKSPACE && bash scripts/backup_memory.sh >> data/backup.log 2>&1 $BACKUP_MARKER"
+if echo "$EXISTING_CRON" | grep -qF "openclaw-memory-backup"; then
+    EXISTING_CRON="$(echo "$EXISTING_CRON" | grep -vF "openclaw-memory-backup")"
+fi
+
+# Log rotation + metrics — weekly Sunday 5am
+ROTATE_MARKER="# openclaw-log-rotation"
+ROTATE_LINE="0 5 * * 0 cd $OC_WORKSPACE && bash scripts/rotate_logs.sh >> data/rotation.log 2>&1 $ROTATE_MARKER"
+if echo "$EXISTING_CRON" | grep -qF "openclaw-log-rotation"; then
+    EXISTING_CRON="$(echo "$EXISTING_CRON" | grep -vF "openclaw-log-rotation")"
+fi
+
+printf '%s\n' "$EXISTING_CRON" "$HEALTH_LINE" "$BACKUP_LINE" "$ROTATE_LINE" | crontab -
+
+log_ok "Maintenance cron jobs installed (health check, backup, log rotation)"
 
 # ============================================================
 # 6. Generate AGENTS.md — the orchestration brain

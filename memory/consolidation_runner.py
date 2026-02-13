@@ -50,6 +50,20 @@ def main(argv: list[str] | None = None) -> int:
         )
         if args.dry_run:
             log.info("(dry-run mode — no changes written)")
+        else:
+            # Run knowledge graduation after consolidation
+            try:
+                from memory.graduation import run_graduation
+
+                grad_summary = run_graduation(str(db_path))
+                log.info(
+                    "Graduation complete — promoted=%d decayed=%d flagged=%d",
+                    grad_summary.get("promoted", 0),
+                    grad_summary.get("decayed", 0),
+                    grad_summary.get("flagged_for_reverify", 0),
+                )
+            except Exception:
+                log.exception("Graduation failed (non-fatal)")
         return 0
     except Exception:
         log.exception("Consolidation failed")
