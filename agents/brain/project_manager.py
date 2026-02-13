@@ -74,7 +74,7 @@ class Task:
     project_id: str  # kept for convenience
     title: str
     description: str
-    agent: str  # builder, investigator, verifier, guardian
+    agent: str  # builder, researcher, verifier, guardian
     depends_on: list[str] = field(default_factory=list)
     status: str = "pending"  # pending, in_progress, completed, failed, skipped
     result: Optional[str] = None

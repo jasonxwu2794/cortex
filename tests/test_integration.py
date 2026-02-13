@@ -49,7 +49,7 @@ modules_to_import = [
     ("agents.common.web_search", "WebSearchClient"),
     ("agents.brain.brain", "BrainAgent"),
     ("agents.builder.builder", "BuilderAgent"),
-    ("agents.investigator.investigator", "InvestigatorAgent"),
+    ("agents.researcher.researcher", "ResearcherAgent"),
     ("agents.verifier.verifier", "VerifierAgent"),
     ("agents.guardian.guardian", "GuardianAgent"),
 ]
@@ -384,7 +384,7 @@ print("=" * 60)
 
 from agents.brain.brain import BrainAgent
 from agents.builder.builder import BuilderAgent
-from agents.investigator.investigator import InvestigatorAgent
+from agents.researcher.researcher import ResearcherAgent
 from agents.verifier.verifier import VerifierAgent
 from agents.guardian.guardian import GuardianAgent
 
@@ -396,7 +396,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
          {"memory_db_path": os.path.join(tmpdir, "mem.db"), "message_bus": bus}),
         ("BuilderAgent", BuilderAgent, AgentRole.BUILDER, "builder",
          {"message_bus": bus}),
-        ("InvestigatorAgent", InvestigatorAgent, AgentRole.INVESTIGATOR, "investigator",
+        ("ResearcherAgent", ResearcherAgent, AgentRole.RESEARCHER, "researcher",
          {"message_bus": bus}),
         ("VerifierAgent", VerifierAgent, AgentRole.VERIFIER, "verifier",
          {"message_bus": bus}),
@@ -417,20 +417,20 @@ with tempfile.TemporaryDirectory() as tmpdir:
     print("\n  --- Permission Matrix ---")
     brain = BrainAgent(memory_db_path=os.path.join(tmpdir, "mem2.db"), message_bus=bus)
     builder = BuilderAgent(message_bus=bus)
-    investigator = InvestigatorAgent(message_bus=bus)
+    researcher = ResearcherAgent(message_bus=bus)
     verifier = VerifierAgent(message_bus=bus)
     guardian = GuardianAgent(message_bus=bus)
 
     report("Brain CAN write memory", brain.can_write_memory)
     report("Builder CANNOT write memory", not builder.can_write_memory)
-    report("Investigator CANNOT write memory", not investigator.can_write_memory)
+    report("Researcher CANNOT write memory", not researcher.can_write_memory)
     report("Verifier CANNOT write memory", not verifier.can_write_memory)
     report("Guardian CANNOT write memory", not guardian.can_write_memory)
 
     report("Builder CAN execute code", builder.can_execute_code)
     report("Brain CANNOT execute code", not brain.can_execute_code)
 
-    report("Investigator CAN access web", investigator.can_access_web)
+    report("Researcher CAN access web", researcher.can_access_web)
     report("Verifier CAN access web", verifier.can_access_web)
     report("Builder CANNOT access web", not builder.can_access_web)
     report("Brain CANNOT access web", not brain.can_access_web)

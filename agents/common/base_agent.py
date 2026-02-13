@@ -20,7 +20,7 @@ _PERMISSIONS: dict[AgentRole, dict[str, bool]] = {
     AgentRole.BRAIN: {"write_memory": True, "access_web": False, "execute_code": False},
     AgentRole.BUILDER: {"write_memory": False, "access_web": False, "execute_code": True},
     AgentRole.VERIFIER: {"write_memory": False, "access_web": True, "execute_code": False},
-    AgentRole.INVESTIGATOR: {"write_memory": False, "access_web": True, "execute_code": False},
+    AgentRole.RESEARCHER: {"write_memory": False, "access_web": True, "execute_code": False},
     AgentRole.GUARDIAN: {"write_memory": False, "access_web": False, "execute_code": False},
 }
 

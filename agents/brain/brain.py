@@ -58,7 +58,7 @@ MAX_CONVERSATION_HISTORY = 50
 DELEGATION_TIMEOUTS = {
     AgentRole.BUILDER: 180.0,       # Code gen can take a while
     AgentRole.VERIFIER: 90.0,
-    AgentRole.INVESTIGATOR: 120.0,
+    AgentRole.RESEARCHER: 120.0,
 }
 
 # ─── Classification Prompt ────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ Respond with ONLY this JSON:
   "reasoning": "<one sentence>",
   "subtasks": [
     {{
-      "agent": "builder|verifier|investigator",
+      "agent": "builder|verifier|researcher",
       "action": "<verb phrase>",
       "description": "<what this subtask accomplishes>",
       "depends_on": [<indices of subtasks this depends on, empty if independent>]
@@ -109,7 +109,7 @@ Break this complex task into ordered subtasks for specialist agents.
 Available agents:
 - builder: Code generation, file operations, tool execution. NO internet. Good at code.
 - verifier: Claim verification, source checking. Has web access. Good at precision.
-- investigator: Information gathering, multi-source synthesis. Has web access. Good at breadth.
+- researcher: Information gathering, multi-source synthesis. Has web access. Good at breadth.
 
 Task: {task_description}
 
@@ -125,7 +125,7 @@ Respond with ONLY this JSON:
 {{
   "subtasks": [
     {{
-      "agent": "builder|verifier|investigator",
+      "agent": "builder|verifier|researcher",
       "action": "<action verb>",
       "description": "<detailed task description with enough context to execute independently>",
       "depends_on": []
@@ -224,7 +224,7 @@ class BrainAgent(BaseAgent):
     # Verbose mode status messages
     VERBOSE_STATUS = {
         AgentRole.BUILDER: "🔨 Builder is working on that...",
-        AgentRole.INVESTIGATOR: "🔍 Investigator is researching...",
+        AgentRole.RESEARCHER: "🔬 Researcher is researching...",
         AgentRole.VERIFIER: "✅ Verifier is checking the facts...",
         AgentRole.GUARDIAN: "🛡️ Guardian is reviewing security...",
     }
@@ -353,9 +353,9 @@ class BrainAgent(BaseAgent):
         elif intent == INTENT_RESEARCH:
             response = await self._handle_single_agent(
                 user_message=user_message,
-                agent=AgentRole.INVESTIGATOR,
+                agent=AgentRole.RESEARCHER,
                 action="research",
-                context_fn=self._scope_investigator_context,
+                context_fn=self._scope_researcher_context,
             )
 
         elif intent == INTENT_IDEA:
@@ -547,7 +547,7 @@ class BrainAgent(BaseAgent):
         """
         # Build scoped context
         context = context_fn(user_message)
-        agent_name = agent.value  # e.g. "builder", "investigator", "verifier"
+        agent_name = agent.value  # e.g. "builder", "researcher", "verifier"
         timeout = DELEGATION_TIMEOUTS.get(agent, 120.0)
 
         # Verbose mode: log status before delegating
@@ -987,10 +987,10 @@ class BrainAgent(BaseAgent):
             knowledge_excerpts=knowledge_excerpts,
         )
 
-    def _scope_investigator_context(self, user_message: str) -> dict:
-        """Prepare scoped context for the Investigator agent."""
+    def _scope_researcher_context(self, user_message: str) -> dict:
+        """Prepare scoped context for the Researcher agent."""
         knowledge_gaps = []  # Could be populated from conversation analysis
-        return ContextScope.for_investigator(
+        return ContextScope.for_researcher(
             query=user_message,
             knowledge_gaps=knowledge_gaps,
         )
@@ -1000,9 +1000,9 @@ class BrainAgent(BaseAgent):
         mapping = {
             AgentRole.BUILDER: self._scope_builder_context,
             AgentRole.VERIFIER: self._scope_verifier_context,
-            AgentRole.INVESTIGATOR: self._scope_investigator_context,
+            AgentRole.RESEARCHER: self._scope_researcher_context,
         }
-        return mapping.get(agent_role, self._scope_investigator_context)
+        return mapping.get(agent_role, self._scope_researcher_context)
 
     # ─── Memory Retrieval ─────────────────────────────────────────────
 
@@ -1072,7 +1072,7 @@ class BrainAgent(BaseAgent):
         mapping = {
             "builder": AgentRole.BUILDER,
             "verifier": AgentRole.VERIFIER,
-            "investigator": AgentRole.INVESTIGATOR,
+            "researcher": AgentRole.RESEARCHER,
             "guardian": AgentRole.GUARDIAN,
         }
         return mapping.get(agent_str, AgentRole.BUILDER)
@@ -1200,11 +1200,11 @@ class BrainAgent(BaseAgent):
         """Create a new project: research → write spec → decompose into features+tasks → show to user."""
         verbose = self.verbose_mode == "verbose"
 
-        # Step 0: Delegate to Investigator for research context
+        # Step 0: Delegate to Researcher for research context
         research_context = None
         try:
             if verbose:
-                logger.info("Pipeline: Investigator researching for new project spec")
+                logger.info("Pipeline: Researcher researching for new project spec")
 
             domain_hint = ""
             if project and project.domain:
@@ -1215,17 +1215,17 @@ class BrainAgent(BaseAgent):
                 f"{user_message}.{domain_hint}"
             )
             research_result = await self.session_manager.delegate(
-                agent_name="investigator",
+                agent_name="researcher",
                 task=research_query,
-                context=self._scope_investigator_context(research_query),
-                timeout=DELEGATION_TIMEOUTS.get(AgentRole.INVESTIGATOR, 120.0),
+                context=self._scope_researcher_context(research_query),
+                timeout=DELEGATION_TIMEOUTS.get(AgentRole.RESEARCHER, 120.0),
             )
             if research_result.success:
                 research_context = research_result.result
             else:
-                logger.warning(f"Investigator research for spec failed: {research_result.error}")
+                logger.warning(f"Researcher research for spec failed: {research_result.error}")
         except Exception as e:
-            logger.warning(f"Investigator research for spec raised: {e}")
+            logger.warning(f"Researcher research for spec raised: {e}")
 
         # Generate spec (with research context if available)
         spec = await spec_writer.write_spec(self.llm, user_message, research_context=research_context)
@@ -1383,7 +1383,7 @@ If concern, explain briefly.
     async def _execute_task_pipeline(self, task: ProjectTask, project) -> dict:
         """
         Full multi-agent pipeline for a single task:
-        1. Investigator research (if needed)
+        1. Researcher research (if needed)
         2. Builder builds
         3. Verifier validates (with retry loop)
         4. Guardian security scan
@@ -1406,27 +1406,27 @@ If concern, explain briefly.
                     break
 
         try:
-            # ── Step 1: Investigator research (if task needs context) ──
+            # ── Step 1: Researcher research (if task needs context) ──
             research_context = ""
             if self._task_needs_research(task):
                 if verbose:
-                    pipeline_log.append("🔍 Investigator is researching best practices...")
-                    logger.info("Pipeline: Investigator researching for task")
+                    pipeline_log.append("🔬 Researcher is researching best practices...")
+                    logger.info("Pipeline: Researcher researching for task")
 
                 research_query = (
                     f"Research best practices, prior art, and potential pitfalls for: "
                     f"{task.title}. {task.description}. Domain: {project.domain or 'general'}"
                 )
                 research_result = await self.session_manager.delegate(
-                    agent_name="investigator",
+                    agent_name="researcher",
                     task=research_query,
-                    context=self._scope_investigator_context(research_query),
-                    timeout=DELEGATION_TIMEOUTS.get(AgentRole.INVESTIGATOR, 120.0),
+                    context=self._scope_researcher_context(research_query),
+                    timeout=DELEGATION_TIMEOUTS.get(AgentRole.RESEARCHER, 120.0),
                 )
                 if research_result.success:
                     research_context = research_result.result or ""
                 else:
-                    logger.warning(f"Investigator research failed: {research_result.error}")
+                    logger.warning(f"Researcher research failed: {research_result.error}")
 
             # ── Step 2: Builder builds ──
             if verbose:
@@ -1582,7 +1582,7 @@ If concern, explain briefly.
             }
 
     def _task_needs_research(self, task: ProjectTask) -> bool:
-        """Heuristic: does this task benefit from Investigator research?"""
+        """Heuristic: does this task benefit from Researcher research?"""
         desc = f"{task.title} {task.description}".lower()
         research_signals = [
             "best practice", "architecture", "design", "compare",

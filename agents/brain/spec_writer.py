@@ -76,7 +76,7 @@ async def write_spec(llm, idea: str, research_context: Optional[str] = None) -> 
     """
     research_section = ""
     if research_context:
-        research_section = f"Research context (from Investigator):\n{research_context}"
+        research_section = f"Research context (from Researcher):\n{research_context}"
 
     prompt = SPEC_PROMPT.format(idea=idea, research_section=research_section)
 

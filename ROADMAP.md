@@ -10,9 +10,9 @@ OpenClaw sessions, SQLite, wizard. Get it running on a $5 VPS in under 10 minute
 - [ ] Brain agent as main OpenClaw session (single-agent mode)
 - [ ] Memory engine — store/retrieve with importance + recency scoring
 - [ ] Agent interface (portable abstraction over OpenClaw sessions)
-- [ ] Multi-agent: Brain spawns Builder, Verifier, Investigator, Guardian
+- [ ] Multi-agent: Brain spawns Builder, Verifier, Researcher, Guardian
 - [ ] Context scoping — Brain filters what each agent sees
-- [ ] Sub-agent pools for Builder (parallel builds) and Investigator (parallel search)
+- [ ] Sub-agent pools for Builder (parallel builds) and Researcher (parallel search)
 - [ ] Knowledge cache with verified facts (no decay)
 - [ ] Basic cost tracking via Guardian
 
@@ -30,7 +30,7 @@ Structured project management and basic version control.
 ## Pro Tier (Future)
 Advanced features for power users and teams.
 
-- [ ] Parallel task execution (Builder + Investigator simultaneously)
+- [ ] Parallel task execution (Builder + Researcher simultaneously)
 - [ ] Multiple concurrent projects with priority management
 - [ ] Sprint planning with velocity tracking
 - [ ] Dependency graph visualization (Mission Control frontend)
@@ -49,7 +49,7 @@ Docker containers with proper isolation. For users who want security boundaries 
 
 - [ ] Dockerfiles per agent
 - [ ] Docker Compose orchestration
-- [ ] Network isolation (sandbox for Builder, external for Investigator/Verifier)
+- [ ] Network isolation (sandbox for Builder, external for Researcher/Verifier)
 - [ ] Resource limits per container (CPU, memory, disk)
 - [ ] Optional Redis message bus (replaces SQLite bus for multi-container)
 - [ ] Volume-based memory sharing with permissions

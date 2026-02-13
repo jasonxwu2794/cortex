@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 # Default tool sets per agent
 AGENT_TOOL_SETS: dict[str, list[str]] = {
     "builder": ["exec", "read", "write", "edit"],
-    "investigator": ["web_search", "web_fetch", "read"],
+    "researcher": ["web_search", "web_fetch", "read"],
     "verifier": ["web_search", "web_fetch", "read"],
     "guardian": ["read"],
 }
@@ -37,7 +37,7 @@ AGENT_TOOL_SETS: dict[str, list[str]] = {
 # Default SOUL.md paths (relative to workspace)
 AGENT_SOUL_PATHS: dict[str, str] = {
     "builder": "agents/builder/SOUL.md",
-    "investigator": "agents/investigator/SOUL.md",
+    "researcher": "agents/researcher/SOUL.md",
     "verifier": "agents/verifier/SOUL.md",
     "guardian": "agents/guardian/SOUL.md",
 }
@@ -231,7 +231,7 @@ class AgentSessionManager:
         default_timeouts = {
             "builder": 120.0,
             "verifier": 90.0,
-            "investigator": 90.0,
+            "researcher": 90.0,
         }
 
         coros = [

@@ -38,7 +38,7 @@ declare -A PROVIDER_VALIDATE_URL=(
 REQUIRED_PROVIDERS=()
 declare -A SEEN_PROVIDERS
 
-for agent in brain builder investigator verifier guardian; do
+for agent in brain builder researcher verifier guardian; do
     provider="$(state_get "providers.$agent" '')"
     if [ -n "$provider" ] && [ -z "${SEEN_PROVIDERS[$provider]:-}" ]; then
         REQUIRED_PROVIDERS+=("$provider")

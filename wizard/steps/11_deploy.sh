@@ -34,7 +34,7 @@ TECH_OTHER="$(state_get 'tech_stack.other' '')"
 
 MODEL_BRAIN="$(state_get 'models.brain' 'claude-sonnet-4')"
 MODEL_BUILDER="$(state_get 'models.builder' 'deepseek-v3')"
-MODEL_INVESTIGATOR="$(state_get 'models.investigator' 'qwen-max')"
+MODEL_RESEARCHER="$(state_get 'models.researcher' 'qwen-max')"
 MODEL_VERIFIER="$(state_get 'models.verifier' 'qwen-max')"
 MODEL_GUARDIAN="$(state_get 'models.guardian' 'claude-sonnet-4')"
 
@@ -121,7 +121,7 @@ cat > "$OC_WORKSPACE/SOUL.md" << SOULEOF
 
 ### Delegation Rules
 - Route code tasks to Builder via subagent spawn
-- Route research to Investigator via subagent spawn
+- Route research to Researcher via subagent spawn
 - Route verification to Verifier via subagent spawn
 - Consult Guardian on safety-sensitive operations via subagent spawn
 
@@ -163,7 +163,7 @@ cat << 'VERBEOF'
 ### Agent Transparency (Verbose Mode)
 When delegating to specialist agents, show status messages to the user:
 - 🔨 Builder is working on that...
-- 🔍 Investigator is researching...
+- 🔬 Researcher is researching...
 - ✅ Verifier is checking the facts...
 - 🛡️ Guardian is reviewing security...
 After receiving results, briefly note which specialist contributed.
@@ -182,7 +182,7 @@ log_ok "Brain SOUL.md generated"
 # Generate other agent SOUL.md files in workspace
 # ============================================================
 mkdir -p "$OC_WORKSPACE/agents/brain" "$OC_WORKSPACE/agents/builder" \
-         "$OC_WORKSPACE/agents/investigator" "$OC_WORKSPACE/agents/verifier" \
+         "$OC_WORKSPACE/agents/researcher" "$OC_WORKSPACE/agents/verifier" \
          "$OC_WORKSPACE/agents/guardian"
 
 # Copy Brain SOUL.md into agents dir too
@@ -224,11 +224,11 @@ TECHEOF
 fi)
 EOF
 
-cat > "$OC_WORKSPACE/agents/investigator/SOUL.md" << 'EOF'
-# SOUL.md — Investigator 🔍
+cat > "$OC_WORKSPACE/agents/researcher/SOUL.md" << 'EOF'
+# SOUL.md — Researcher 🔬
 
 ## Role
-You are Investigator, the research and synthesis specialist.
+You are Researcher, the research and synthesis specialist.
 
 ## Responsibilities
 - Search the web for relevant information
@@ -312,9 +312,9 @@ tools:
   - edit
 EOF
 
-# Investigator config
-cat > "$OC_WORKSPACE/agents/investigator/config.yaml" << EOF
-model: $(brain_model_id_for "$MODEL_INVESTIGATOR")
+# Researcher config
+cat > "$OC_WORKSPACE/agents/researcher/config.yaml" << EOF
+model: $(brain_model_id_for "$MODEL_RESEARCHER")
 tools:
   - web_search
   - web_fetch
@@ -362,7 +362,7 @@ model_to_provider() {
 
 # Collect unique providers needed
 declare -A NEEDED_PROVIDERS
-for model_var in MODEL_BRAIN MODEL_BUILDER MODEL_INVESTIGATOR MODEL_VERIFIER MODEL_GUARDIAN; do
+for model_var in MODEL_BRAIN MODEL_BUILDER MODEL_RESEARCHER MODEL_VERIFIER MODEL_GUARDIAN; do
     provider="$(model_to_provider "${!model_var}")"
     NEEDED_PROVIDERS["$provider"]=1
 done
@@ -602,7 +602,7 @@ Use OpenClaw's subagent spawn to delegate tasks. Each subagent runs in its own s
 - Context: Give it the task + relevant code/files
 - Example: "Write a Python script that...", "Fix this bug in...", "Deploy to..."
 
-**Investigator 🔍** — Research & Synthesis
+**Researcher 🔬** — Research & Synthesis
 - Spawn for: web research, fact-finding, summarizing sources, comparing options
 - Context: Give it the research question + any constraints
 - Example: "Research the best...", "Find documentation for...", "Compare X vs Y"
@@ -619,7 +619,7 @@ Use OpenClaw's subagent spawn to delegate tasks. Each subagent runs in its own s
 
 ### Delegation Rules
 - **Code tasks** → Builder (always)
-- **Research** → Investigator (always)
+- **Research** → Researcher (always)
 - **Fact-checking** → Verifier (when accuracy matters)
 - **Security-sensitive ops** → Guardian (when risk exists)
 - **Simple questions** → Handle yourself (don't over-delegate)
@@ -628,7 +628,7 @@ Use OpenClaw's subagent spawn to delegate tasks. Each subagent runs in its own s
 ### Response Synthesis
 When subagents return results:
 - Integrate findings into a natural, cohesive response
-- Don't say "Builder reports..." or "According to Investigator..."
+- Don't say "Builder reports..." or "According to Researcher..."
 - Present it as your own knowledge, seamlessly
 - If agents disagree, use your judgment or ask Verifier to verify
 
@@ -739,7 +739,7 @@ gum style \
     "  👤 User:     $USER_NAME ($USER_PREF)" \
     "  🧠 Brain:    $BRAIN_NAME ($MODEL_BRAIN)" \
     "  🔨 Builder:  $MODEL_BUILDER" \
-    "  🔍 Investigator:    $MODEL_INVESTIGATOR" \
+    "  🔬 Researcher:    $MODEL_RESEARCHER" \
     "  ✅ Verifier:  $MODEL_VERIFIER" \
     "  🛡️ Guardian: $MODEL_GUARDIAN" \
     "  💾 Memory:   $MEMORY_TIER" \

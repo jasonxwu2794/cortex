@@ -18,7 +18,7 @@ class AgentRole(Enum):
     BRAIN = "brain"
     BUILDER = "builder"
     VERIFIER = "verifier"
-    INVESTIGATOR = "investigator"
+    RESEARCHER = "researcher"
     GUARDIAN = "guardian"
 
 
@@ -66,12 +66,12 @@ class ContextScope:
         }
 
     @staticmethod
-    def for_investigator(
+    def for_researcher(
         query: str,
         knowledge_gaps: list[str] | None = None,
     ) -> dict:
         return {
-            "scope": "investigator",
+            "scope": "researcher",
             "query": query,
             "knowledge_gaps": knowledge_gaps or [],
         }

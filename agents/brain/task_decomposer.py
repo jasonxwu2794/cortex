@@ -19,7 +19,7 @@ Break this project specification into logical features, each containing ordered 
 
 Available agents:
 - builder: Code generation, file creation, execution, debugging. NO internet access.
-- investigator: Research, web search, information gathering. Has internet.
+- researcher: Research, web search, information gathering. Has internet.
 - verifier: Fact-checking, code review, testing. Has internet.
 - guardian: Security review, credential checks, risk assessment.
 
@@ -47,7 +47,7 @@ Respond with ONLY this JSON:
           "id": "task_1",
           "title": "<short task title>",
           "description": "<detailed description with enough context to execute>",
-          "agent": "builder|investigator|verifier|guardian",
+          "agent": "builder|researcher|verifier|guardian",
           "depends_on": [],
           "order": 1
         }}
