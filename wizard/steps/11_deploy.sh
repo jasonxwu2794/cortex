@@ -680,7 +680,7 @@ echo "$EXISTING_CRON" | crontab -
 # ============================================================
 log_info "Generating AGENTS.md (orchestration instructions)..."
 
-cp "$INSTALL_DIR/workspace-templates/AGENTS.md" "$OC_WORKSPACE/AGENTS.md"
+cp "$PROJECT_DIR/workspace-templates/AGENTS.md" "$OC_WORKSPACE/AGENTS.md"
 
 # Disable MEMORY.md — all memory goes through semantic DB
 rm -f "$OC_WORKSPACE/MEMORY.md"
