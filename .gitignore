@@ -1,11 +1,12 @@
 __pycache__/
 *.pyc
-*.db
+*.pyo
+.pytest_cache/
+data/*.db
 .wizard-state.json
-data/
 *.egg-info/
 dist/
 build/
 .env
 venv/
-.pytest_cache/
+data/
