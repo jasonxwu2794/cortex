@@ -447,9 +447,9 @@ case "$MESSAGING" in
                 --arg owner "$TELEGRAM_OWNER" \
                 '.channels.telegram.enabled = true |
                  .channels.telegram.botToken = $token |
-                 .channels.telegram.dmPolicy = "allowAll" |
-                 .channels.telegram.groupPolicy = "allowAll" |
-                 .channels.telegram.streamMode = "edit" |
+                 .channels.telegram.dmPolicy = "open" |
+                 .channels.telegram.groupPolicy = "disabled" |
+                 .channels.telegram.streamMode = "partial" |
                  (if $owner != "" then .channels.telegram.allowedUsers = [$owner] else . end) |
                  .plugins.entries.telegram.enabled = true')"
             log_ok "Telegram channel configured"
