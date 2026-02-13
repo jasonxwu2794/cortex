@@ -457,6 +457,40 @@ print('messages.db initialized')
 cd "$PROJECT_DIR"
 
 # ============================================================
+# 5b. Set up memory consolidation cron job
+# ============================================================
+log_info "Setting up memory consolidation cron job..."
+
+CRON_TIER="$MEMORY_TIER"
+USER_TZ="$(state_get 'user.timezone' 'UTC')"
+CRON_CMD="cd $OC_WORKSPACE && python3 -m memory.consolidation_runner --db-path data/memory.db --tier $CRON_TIER >> data/consolidation.log 2>&1"
+CRON_MARKER="# openclaw-memory-consolidation"
+
+if [ "$CRON_TIER" = "full" ]; then
+    CRON_SCHEDULE="0 3 * * *"
+    CRON_DESC="daily at 3:00 AM"
+else
+    CRON_SCHEDULE="0 3 * * 0"
+    CRON_DESC="weekly (Sunday) at 3:00 AM"
+fi
+
+CRON_LINE="$CRON_SCHEDULE $CRON_CMD $CRON_MARKER"
+
+# Read existing crontab, append if not already there, write back
+EXISTING_CRON="$(crontab -l 2>/dev/null || true)"
+if echo "$EXISTING_CRON" | grep -qF "openclaw-memory-consolidation"; then
+    # Replace existing line
+    EXISTING_CRON="$(echo "$EXISTING_CRON" | grep -vF "openclaw-memory-consolidation")"
+fi
+echo "${EXISTING_CRON:+$EXISTING_CRON
+}$CRON_LINE" | crontab -
+
+log_ok "Cron job installed ($CRON_DESC, TZ: $USER_TZ)"
+log_info "  Schedule: $CRON_SCHEDULE"
+log_info "  Command:  python3 -m memory.consolidation_runner --db-path data/memory.db --tier $CRON_TIER"
+log_info "  Log:      $OC_WORKSPACE/data/consolidation.log"
+
+# ============================================================
 # 6. Generate AGENTS.md — the orchestration brain
 # ============================================================
 log_info "Generating AGENTS.md (orchestration instructions)..."

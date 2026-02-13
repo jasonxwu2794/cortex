@@ -11,42 +11,73 @@ import numpy as np
 from memory.embeddings import cosine_similarity, deserialize_embedding, serialize_embedding
 
 
-def run_consolidation(db: sqlite3.Connection, tier: str = "full") -> int:
-    """Main consolidation routine. Returns number of memories consolidated."""
-    old = find_old_memories(db)
-    if not old:
-        return 0
+def run_consolidation(db_path: str, tier: str = "full", dry_run: bool = False) -> dict:
+    """Main entry point for consolidation.
 
-    clusters = cluster_memories(old)
-    consolidated = 0
-    for cluster in clusters:
-        if len(cluster) < 2:
-            continue
-        summary = summarize_cluster(cluster)
-        # Store consolidated memory as long-term
-        summary_id = f"mem_{uuid.uuid4().hex[:12]}"
-        best = max(cluster, key=lambda m: m["importance"])
-        db.execute(
-            "INSERT INTO memories (id, content, embedding, tier, importance, tags, source_agent, metadata) "
-            "VALUES (?, ?, ?, 'long_term', ?, ?, ?, ?)",
-            (summary_id, summary, best["embedding"], best["importance"],
-             best["tags"], best["source_agent"], str({"consolidated_from": [m["id"] for m in cluster]})),
-        )
-        # Link originals and mark them
-        for mem in cluster:
-            db.execute(
-                "INSERT OR IGNORE INTO memory_links (memory_id_a, memory_id_b, relation_type, strength) "
-                "VALUES (?, ?, 'consolidated_into', 1.0)",
-                (mem["id"], summary_id),
-            )
-            db.execute("DELETE FROM memories WHERE id = ?", (mem["id"],))
-        consolidated += len(cluster)
+    Returns a summary dict: {consolidated, clusters, pruned}.
+    """
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
 
-    if tier != "full":
-        consolidated += prune_low_importance(db)
+    try:
+        summary = {"consolidated": 0, "clusters": 0, "pruned": 0}
 
-    db.commit()
-    return consolidated
+        old = find_old_memories(conn)
+        if old:
+            clusters = cluster_memories(old)
+            summary["clusters"] = len([c for c in clusters if len(c) >= 2])
+
+            if not dry_run:
+                for cluster in clusters:
+                    if len(cluster) < 2:
+                        continue
+                    merged = summarize_cluster(cluster)
+                    summary_id = f"mem_{uuid.uuid4().hex[:12]}"
+                    best = max(cluster, key=lambda m: m["importance"])
+                    conn.execute(
+                        "INSERT INTO memories (id, content, embedding, tier, importance, tags, source_agent, metadata) "
+                        "VALUES (?, ?, ?, 'long_term', ?, ?, ?, ?)",
+                        (
+                            summary_id,
+                            merged,
+                            best["embedding"],
+                            best["importance"],
+                            best["tags"],
+                            best["source_agent"],
+                            str({"consolidated_from": [m["id"] for m in cluster]}),
+                        ),
+                    )
+                    for mem in cluster:
+                        conn.execute(
+                            "INSERT OR IGNORE INTO memory_links (memory_id_a, memory_id_b, relation_type, strength) "
+                            "VALUES (?, ?, 'consolidated_into', 1.0)",
+                            (mem["id"], summary_id),
+                        )
+                        conn.execute("DELETE FROM memories WHERE id = ?", (mem["id"],))
+                    summary["consolidated"] += len(cluster)
+            else:
+                # dry-run: just count
+                for cluster in clusters:
+                    if len(cluster) >= 2:
+                        summary["consolidated"] += len(cluster)
+
+        # Standard tier: also prune low-importance memories
+        if tier != "full":
+            if dry_run:
+                count = conn.execute(
+                    "SELECT COUNT(*) FROM memories WHERE tier = 'short_term' AND importance < 0.3"
+                ).fetchone()[0]
+                summary["pruned"] = count
+            else:
+                summary["pruned"] = prune_low_importance(conn)
+
+        if not dry_run:
+            conn.commit()
+
+        return summary
+    finally:
+        conn.close()
 
 
 def find_old_memories(db: sqlite3.Connection, days: int = 7) -> list[dict]:
@@ -88,11 +119,17 @@ def cluster_memories(memories: list[dict], threshold: float = 0.7) -> list[list[
 
 def summarize_cluster(cluster: list[dict]) -> str:
     """Summarize a cluster of memories.
-    
-    TODO: Use LLM for real summarization. For now, pick highest importance memory.
+
+    Pick highest-importance memory content and append unique info from others.
+    No LLM needed — suitable for cron.
     """
     best = max(cluster, key=lambda m: m.get("importance", 0))
-    return best["content"]
+    others = [m["content"] for m in cluster if m["id"] != best["id"] and m["content"] != best["content"]]
+    if not others:
+        return best["content"]
+    # Merge: best content + unique additions
+    parts = [best["content"]] + [f"[Related: {c}]" for c in others[:5]]
+    return "\n".join(parts)
 
 
 def prune_low_importance(db: sqlite3.Connection, threshold: float = 0.3) -> int:
