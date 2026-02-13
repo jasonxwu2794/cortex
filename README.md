@@ -165,7 +165,7 @@ Every memory gets a composite score combining:
 - **🧹 Deduplication** — near-duplicates boost existing memories instead of creating clutter
 - **🔄 Consolidation** — old short-term memories get clustered and summarized into long-term memory
 - **👍 Feedback-driven** — "that's right" boosts importance, "that's outdated" decays it
-- **🏠 Local embeddings** — MiniLM-L6-v2 runs on CPU, free, private, ~95% quality of API models
+- **🏠 Local embeddings** — MiniLM-L6-v2 via ONNX Runtime (~50MB, no PyTorch needed), free, private, ~95% quality of API models
 
 ---
 
