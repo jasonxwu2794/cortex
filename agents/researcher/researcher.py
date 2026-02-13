@@ -209,6 +209,14 @@ class ResearcherAgent(BaseAgent):
             os.environ.get("KNOWLEDGE_CACHE_PATH", "/data/knowledge")
         )
 
+        # Dual-model routing: thinking model for decompose/synthesize, instant for sub-agents
+        self.thinking_model = kwargs.get("thinking_model") or os.getenv(
+            "RESEARCHER_THINKING_MODEL", "kimi-k2.5-thinking"
+        )
+        self.instant_model = kwargs.get("instant_model") or os.getenv(
+            "RESEARCHER_INSTANT_MODEL", "kimi-k2.5-instant"
+        )
+
     # ─── BaseAgent interface ──────────────────────────────────────────
 
     @property
@@ -346,6 +354,7 @@ class ResearcherAgent(BaseAgent):
                     "Respond with ONLY JSON."
                 ),
                 temperature=0.4,
+                model=self.thinking_model,
             )
             decomposition = result["content"]
             threads = decomposition.get("threads", [])
@@ -459,7 +468,7 @@ class ResearcherAgent(BaseAgent):
             ))
 
         logger.info(f"Launching {len(subtasks)} research threads in parallel")
-        sub_results = await self.sub_pool.execute_parallel(subtasks)
+        sub_results = await self.sub_pool.execute_parallel(subtasks, model=self.instant_model)
 
         # Parse results
         thread_results = []
@@ -580,6 +589,7 @@ class ResearcherAgent(BaseAgent):
                 prompt=prompt,
                 system=self.system_prompt,
                 temperature=0.5,
+                model=self.thinking_model,
             )
             report = result["content"]
 

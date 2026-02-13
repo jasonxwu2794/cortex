@@ -98,6 +98,11 @@
   - Zero external dependency for code editing
 - [ ] Full model flexibility — any OpenAI-compatible or native API model for any agent
 - [ ] Smart model routing v2 (auto-select based on task complexity + Arena/Aider benchmarks)
+- [ ] Guardian Pro capabilities:
+  - Dependency vulnerability audit (CVE database lookups)
+  - License compliance checking (flag GPL/AGPL in MIT projects, etc.)
+  - Attack surface review (endpoint exposure, auth gaps, input validation coverage)
+  - Post-commit health checks with test runner integration (run tests after Guardian approves, auto-rollback on failure)
 
 ---
 

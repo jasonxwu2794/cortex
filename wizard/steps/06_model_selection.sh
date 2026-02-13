@@ -16,25 +16,28 @@ MODELS=(
     "Gemini 2.5 Pro|gemini-2.5-pro|google|~\$10-30/mo|████████░░|83% Aider, 1M context"
     "Qwen3 Max|qwen-max|alibaba|~\$5-15/mo|██████░░░░|Complex tasks, 262K context"
     "Qwen3 Plus|qwen-plus|alibaba|~\$2-6/mo|████░░░░░░|1M context, never recharge 😂"
-    "Kimi K2.5|kimi-k2.5|moonshot|~\$3-10/mo|██████░░░░|#4 Arena coding, multimodal"
+    "Kimi K2.5 Thinking|kimi-k2.5-thinking|moonshot|~\$3-10/mo|██████░░░░|Deep reasoning, Arena #18"
+    "Kimi K2.5 Instant|kimi-k2.5-instant|moonshot|~\$2-6/mo|█████░░░░░|Fast, Arena #24, coding #4"
+    "Gemini 2.5 Flash|gemini-2.5-flash|google|~\$1-5/mo|████░░░░░░|Fast + cheap, 1M context"
 )
 
 # --- Agents to configure ---
 declare -A AGENT_LABELS=(
     [brain]="🧠 Cortex (Orchestrator, user-facing)"
     [builder]="🔨 Builder (Code generation)"
-    [researcher]="🔬 Researcher (Research, synthesis)"
+    [researcher]="🔬 Researcher (uses 2 models: deep + fast)"
     [verifier]="✅ Verifier (Fact verification)"
-    [guardian]="🛡️ Guardian (Security review)"
+    [guardian]="🛡️ Guardian (Quality + security gatekeeper)"
 )
 
 # --- Recommended defaults ---
 declare -A DEFAULTS=(
     [brain]="Claude Opus 4.6"
     [builder]="DeepSeek V3.2 Reasoner"
-    [researcher]="Qwen3 Plus"
-    [verifier]="Claude Opus 4.6"
-    [guardian]="DeepSeek V3.2 Chat"
+    [researcher_thinking]="Kimi K2.5 Thinking"
+    [researcher_instant]="Kimi K2.5 Instant"
+    [verifier]="DeepSeek V3.2 Reasoner"
+    [guardian]="Qwen3 Plus"
 )
 
 AGENT_ORDER=(brain builder researcher verifier guardian)
@@ -46,32 +49,21 @@ for m in "${MODELS[@]}"; do
     MODEL_NAMES+=("$name  $cost  $bar")
 done
 
-for agent in "${AGENT_ORDER[@]}"; do
-    wizard_divider
-    gum style --bold --foreground 212 "${AGENT_LABELS[$agent]}"
-    echo ""
+_select_model() {
+    local header="$1"
+    local default_name="$2"
 
-    # Get previous/default selection
-    PREV="$(state_get "models.$agent" '')"
-    if [ -z "$PREV" ] && is_recommended; then
-        PREV="${DEFAULTS[$agent]}"
-    fi
-
-    # Build --selected flag if we have a previous/default
     SELECTED_FLAG=()
-    if [ -n "$PREV" ]; then
+    if [ -n "$default_name" ]; then
         for entry in "${MODEL_NAMES[@]}"; do
-            if [[ "$entry" == "$PREV"* ]]; then
+            if [[ "$entry" == "$default_name"* ]]; then
                 SELECTED_FLAG=(--selected "$entry")
                 break
             fi
         done
     fi
 
-    # Show cost table and let user choose
-    CHOICE="$(gum choose --header "Select model:" "${SELECTED_FLAG[@]}" "${MODEL_NAMES[@]}")"
-
-    # Extract model slug from choice
+    CHOICE="$(gum choose --header "$header" "${SELECTED_FLAG[@]}" "${MODEL_NAMES[@]}")"
     CHOSEN_NAME="$(echo "$CHOICE" | sed 's/  .*//')"
     CHOSEN_SLUG=""
     CHOSEN_PROVIDER=""
@@ -83,10 +75,44 @@ for agent in "${AGENT_ORDER[@]}"; do
             break
         fi
     done
+}
 
-    state_set "models.$agent" "$CHOSEN_SLUG"
-    state_set "providers.$agent" "$CHOSEN_PROVIDER"
-    log_ok "$agent → $CHOSEN_NAME ($CHOSEN_SLUG)"
+for agent in "${AGENT_ORDER[@]}"; do
+    wizard_divider
+    gum style --bold --foreground 212 "${AGENT_LABELS[$agent]}"
+    echo ""
+
+    if [ "$agent" = "researcher" ]; then
+        # Researcher uses dual-model routing: thinking + instant
+        PREV_T="$(state_get "models.researcher.thinking" '')"
+        if [ -z "$PREV_T" ] && is_recommended; then
+            PREV_T="${DEFAULTS[researcher_thinking]}"
+        fi
+        _select_model "Select THINKING model (for planning & synthesis):" "$PREV_T"
+        state_set "models.researcher.thinking" "$CHOSEN_SLUG"
+        state_set "providers.researcher.thinking" "$CHOSEN_PROVIDER"
+        log_ok "researcher (thinking) → $CHOSEN_NAME ($CHOSEN_SLUG)"
+
+        PREV_I="$(state_get "models.researcher.instant" '')"
+        if [ -z "$PREV_I" ] && is_recommended; then
+            PREV_I="${DEFAULTS[researcher_instant]}"
+        fi
+        _select_model "Select INSTANT model (for parallel investigations):" "$PREV_I"
+        state_set "models.researcher.instant" "$CHOSEN_SLUG"
+        state_set "providers.researcher.instant" "$CHOSEN_PROVIDER"
+        log_ok "researcher (instant) → $CHOSEN_NAME ($CHOSEN_SLUG)"
+    else
+        # Standard single-model selection
+        PREV="$(state_get "models.$agent" '')"
+        if [ -z "$PREV" ] && is_recommended; then
+            PREV="${DEFAULTS[$agent]}"
+        fi
+
+        _select_model "Select model:" "$PREV"
+        state_set "models.$agent" "$CHOSEN_SLUG"
+        state_set "providers.$agent" "$CHOSEN_PROVIDER"
+        log_ok "$agent → $CHOSEN_NAME ($CHOSEN_SLUG)"
+    fi
 done
 
 wizard_divider

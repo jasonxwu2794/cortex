@@ -1,5 +1,5 @@
 """
-OpenClaw Distro — Guardian Agent (Security Lead)
+OpenClaw Distro — Guardian Agent (Quality + Security Gatekeeper)
 
 The Guardian is fundamentally different from other agents:
 - It is NOT delegated to by the Brain
@@ -7,6 +7,15 @@ The Guardian is fundamentally different from other agents:
 - It can PASS, FLAG, or BLOCK any message/output
 - It NEVER fragments into sub-agents (must see full picture)
 - It tracks costs across all agents
+
+Capabilities (Free Tier):
+1. Credential scanning — regex + LLM review for secrets, API keys, tokens
+2. Breaking change detection — analyze diffs for changed signatures/interfaces,
+   verify callers are updated
+3. Code convention enforcement — check against user-defined project rules
+   (loaded from config); skips gracefully if none defined
+4. Rollback decision logic — after repeated verification failures, decide:
+   rollback, escalate to Cortex, or flag for human review
 
 The Guardian overrides the standard run() loop to use listen_intercept(),
 which subscribes to the "guardian:intercept" channel where ALL messages
@@ -92,6 +101,82 @@ SQL_INJECTION_PATTERNS = [
 
 # ─── Review Prompt ────────────────────────────────────────────────────────────
 
+BREAKING_CHANGE_PROMPT = """\
+Analyze this diff for breaking changes. Look for:
+1. Changed function signatures (added/removed/reordered parameters)
+2. Changed class interfaces (renamed methods, changed inheritance)
+3. Changed API contracts (endpoints, request/response shapes)
+4. Changed return types or error behavior
+
+Diff:
+{diff}
+
+Affected files and their callers:
+{caller_context}
+
+Respond with ONLY a JSON object:
+{{
+  "breaking_changes": [
+    {{
+      "type": "signature_change|interface_change|api_change|behavior_change",
+      "location": "<file:line or function name>",
+      "description": "<what changed>",
+      "callers_updated": <true|false|null>,
+      "affected_callers": ["<list of files/functions that call this>"],
+      "severity": "critical|high|medium|low"
+    }}
+  ],
+  "summary": "<brief summary or 'No breaking changes detected'>"
+}}
+"""
+
+CODE_CONVENTION_PROMPT = """\
+Check this diff against the following project code conventions/rules.
+Only flag clear violations — do not be overly pedantic.
+
+Project rules:
+{rules}
+
+Diff:
+{diff}
+
+Respond with ONLY a JSON object:
+{{
+  "violations": [
+    {{
+      "rule": "<which rule was violated>",
+      "location": "<file:line>",
+      "description": "<what violates the rule>",
+      "severity": "high|medium|low"
+    }}
+  ],
+  "summary": "<brief summary or 'No violations found'>"
+}}
+"""
+
+ROLLBACK_DECISION_PROMPT = """\
+Verification has failed {failure_count} time(s) for this task. Analyze the situation and decide the next action.
+
+Task context:
+{task_context}
+
+Failure history:
+{failure_history}
+
+Choose ONE action:
+- "rollback" — if the changes are clearly broken and should be reverted
+- "escalate" — if the issue is ambiguous and Cortex (orchestrator) should decide
+- "flag_human" — if the issue requires human judgment (e.g., intentional breaking change, policy decision)
+
+Respond with ONLY a JSON object:
+{{
+  "decision": "rollback|escalate|flag_human",
+  "reasoning": "<why this decision>",
+  "confidence": <0.0-1.0>,
+  "details": "<additional context for whoever handles this>"
+}}
+"""
+
 SECURITY_REVIEW_PROMPT = """\
 Review this agent output for security issues. Be thorough but practical.
 
@@ -152,6 +237,7 @@ class GuardianAgent(BaseAgent):
 
     role = AgentRole.GUARDIAN
     name = "guardian"
+    model = "qwen-plus"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -632,6 +718,279 @@ class GuardianAgent(BaseAgent):
         return {
             "verdict": verdict,
             "issues": all_issues,
+            "cost_report": self._build_cost_report(),
+            "blocked_reason": (
+                "; ".join(i["description"] for i in all_issues if i["severity"] == "critical")
+                if verdict == "block" else None
+            ),
+        }
+
+    # ─── Breaking Change Detection ───────────────────────────────────
+
+    async def detect_breaking_changes(self, diff: str, caller_context: str = "") -> list[dict]:
+        """
+        Analyze a diff for breaking changes: changed function signatures,
+        class interfaces, or API contracts. Checks if callers are updated.
+
+        Args:
+            diff: The git diff or code diff to analyze.
+            caller_context: Content of files that call the changed code.
+
+        Returns:
+            List of issue dicts for any breaking changes found.
+        """
+        if not diff or not diff.strip():
+            return []
+
+        prompt = BREAKING_CHANGE_PROMPT.format(
+            diff=diff[:6000],
+            caller_context=caller_context[:4000] if caller_context else "(caller context not available)",
+        )
+
+        try:
+            result = await self.llm.generate_json(
+                prompt=prompt,
+                system="You are a code review expert. Detect breaking changes precisely. Respond with ONLY JSON.",
+                temperature=0.1,
+            )
+            breaking_changes = result["content"].get("breaking_changes", [])
+
+            issues = []
+            for bc in breaking_changes:
+                if bc.get("callers_updated") is False:
+                    severity = bc.get("severity", "high")
+                else:
+                    severity = "medium" if bc.get("callers_updated") is None else "low"
+
+                issues.append({
+                    "severity": severity,
+                    "category": "breaking_change",
+                    "description": f"Breaking change ({bc.get('type', 'unknown')}): {bc.get('description', '')}",
+                    "location": bc.get("location", "unknown"),
+                    "recommendation": f"Update callers: {', '.join(bc.get('affected_callers', [])[:5])}",
+                })
+            return issues
+
+        except Exception as e:
+            logger.warning(f"Breaking change detection failed: {e}")
+            return []
+
+    # ─── Code Convention Enforcement ──────────────────────────────────
+
+    def _load_convention_rules(self) -> Optional[str]:
+        """
+        Load user-defined code convention rules from config.
+        Looks for rules in (in order):
+        1. GUARDIAN_CONVENTION_RULES env var (inline rules)
+        2. configs/user/conventions.yaml or .convention-rules
+        3. .guardian-rules in project root
+
+        Returns None if no rules are defined (skip gracefully).
+        """
+        # 1. Environment variable
+        env_rules = os.environ.get("GUARDIAN_CONVENTION_RULES")
+        if env_rules and env_rules.strip():
+            return env_rules.strip()
+
+        # 2. Config files
+        rule_paths = [
+            Path("configs/user/conventions.yaml"),
+            Path(".convention-rules"),
+            Path(".guardian-rules"),
+        ]
+        for rule_path in rule_paths:
+            try:
+                if rule_path.exists():
+                    content = rule_path.read_text().strip()
+                    if content:
+                        logger.info(f"Loaded convention rules from {rule_path}")
+                        return content
+            except Exception as e:
+                logger.debug(f"Could not read {rule_path}: {e}")
+
+        return None
+
+    async def enforce_code_conventions(self, diff: str) -> list[dict]:
+        """
+        Check a diff against user-defined project code conventions.
+        Skips gracefully if no rules are defined.
+
+        Args:
+            diff: The git diff to check.
+
+        Returns:
+            List of issue dicts for convention violations.
+        """
+        rules = self._load_convention_rules()
+        if not rules:
+            logger.debug("No convention rules defined — skipping convention enforcement")
+            return []
+
+        if not diff or not diff.strip():
+            return []
+
+        prompt = CODE_CONVENTION_PROMPT.format(
+            rules=rules[:3000],
+            diff=diff[:6000],
+        )
+
+        try:
+            result = await self.llm.generate_json(
+                prompt=prompt,
+                system="You are a code style reviewer. Check against the given rules. Respond with ONLY JSON.",
+                temperature=0.1,
+            )
+            violations = result["content"].get("violations", [])
+
+            issues = []
+            for v in violations:
+                issues.append({
+                    "severity": v.get("severity", "low"),
+                    "category": "convention_violation",
+                    "description": f"Convention violation ({v.get('rule', 'unknown')}): {v.get('description', '')}",
+                    "location": v.get("location", "unknown"),
+                    "recommendation": f"Follow project rule: {v.get('rule', '')}",
+                })
+            return issues
+
+        except Exception as e:
+            logger.warning(f"Convention enforcement failed: {e}")
+            return []
+
+    # ─── Rollback Decision Logic ──────────────────────────────────────
+
+    async def make_rollback_decision(
+        self,
+        task_context: str,
+        failure_count: int = 2,
+        failure_history: str = "",
+    ) -> dict:
+        """
+        When verification has failed repeatedly, decide the next action:
+        - rollback: revert the changes
+        - escalate: pass to Cortex for orchestrator-level decision
+        - flag_human: require human review
+
+        Args:
+            task_context: Description of the task and what was attempted.
+            failure_count: Number of verification failures (typically ≥2).
+            failure_history: Description of what failed and why.
+
+        Returns:
+            Structured decision dict with decision, reasoning, confidence, details.
+        """
+        prompt = ROLLBACK_DECISION_PROMPT.format(
+            failure_count=failure_count,
+            task_context=task_context[:3000],
+            failure_history=failure_history[:3000] if failure_history else "(no detailed history available)",
+        )
+
+        try:
+            result = await self.llm.generate_json(
+                prompt=prompt,
+                system="You are a release gatekeeper. Make conservative decisions. Respond with ONLY JSON.",
+                temperature=0.2,
+            )
+            decision = result["content"]
+
+            # Validate and normalize
+            valid_decisions = ("rollback", "escalate", "flag_human")
+            if decision.get("decision") not in valid_decisions:
+                decision["decision"] = "escalate"  # safe default
+                decision["reasoning"] = (decision.get("reasoning", "") +
+                    " (decision normalized to 'escalate' due to unrecognized value)")
+
+            return {
+                "decision": decision.get("decision", "escalate"),
+                "reasoning": decision.get("reasoning", ""),
+                "confidence": min(max(decision.get("confidence", 0.5), 0.0), 1.0),
+                "details": decision.get("details", ""),
+                "failure_count": failure_count,
+            }
+
+        except Exception as e:
+            logger.warning(f"Rollback decision failed: {e}")
+            # Conservative fallback: escalate to Cortex
+            return {
+                "decision": "escalate",
+                "reasoning": f"Rollback decision LLM call failed ({e}); escalating as safety measure.",
+                "confidence": 0.3,
+                "details": "Automatic escalation due to decision engine failure.",
+                "failure_count": failure_count,
+            }
+
+    # ─── Aggregated Review (called from intercept or direct) ──────────
+
+    async def review(
+        self,
+        msg: AgentMessage,
+        diff: str = "",
+        caller_context: str = "",
+        verification_failure_count: int = 0,
+        task_context: str = "",
+        failure_history: str = "",
+    ) -> dict:
+        """
+        Full quality + security review aggregating all Guardian capabilities.
+
+        Runs:
+        1. Credential scanning (fast regex)
+        2. Prompt injection check
+        3. Cost budget check
+        4. LLM security review (for Builder code output)
+        5. Breaking change detection (if diff provided)
+        6. Code convention enforcement (if diff provided and rules exist)
+        7. Rollback decision (if verification has failed ≥2 times)
+
+        Returns aggregated result with verdict, issues, and optional rollback decision.
+        """
+        all_issues = []
+
+        # 1. Fast regex credential scan
+        all_issues.extend(self._fast_scan(msg))
+
+        # 2. Prompt injection check
+        all_issues.extend(self._check_injection(msg))
+
+        # 3. Cost budget check
+        all_issues.extend(self._check_budget())
+
+        # 4. LLM security review for code artifacts
+        from_val = msg.from_agent.value if isinstance(msg.from_agent, AgentRole) else msg.from_agent
+        has_code = bool(msg.result and (msg.result.get("code_output") or msg.result.get("artifacts")))
+        if from_val == AgentRole.BUILDER.value and has_code:
+            try:
+                llm_issues = await self._llm_security_review(msg)
+                all_issues.extend(llm_issues)
+            except Exception as e:
+                logger.warning(f"LLM security review failed in review(): {e}")
+
+        # 5. Breaking change detection
+        if diff:
+            bc_issues = await self.detect_breaking_changes(diff, caller_context)
+            all_issues.extend(bc_issues)
+
+        # 6. Code convention enforcement
+        if diff:
+            conv_issues = await self.enforce_code_conventions(diff)
+            all_issues.extend(conv_issues)
+
+        # 7. Rollback decision logic
+        rollback_decision = None
+        if verification_failure_count >= 2:
+            rollback_decision = await self.make_rollback_decision(
+                task_context=task_context,
+                failure_count=verification_failure_count,
+                failure_history=failure_history,
+            )
+
+        verdict = self._determine_verdict(all_issues)
+
+        return {
+            "verdict": verdict,
+            "issues": all_issues,
+            "issue_count": len(all_issues),
+            "rollback_decision": rollback_decision,
             "cost_report": self._build_cost_report(),
             "blocked_reason": (
                 "; ".join(i["description"] for i in all_issues if i["severity"] == "critical")

@@ -62,7 +62,7 @@ PROVIDERS: dict[str, tuple[str, str, str]] = {
     "deepseek": ("DEEPSEEK_API_KEY", "https://api.deepseek.com/v1", "deepseek-chat"),
     "qwen": ("QWEN_API_KEY", "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "qwen-plus"),
     "google": ("GOOGLE_API_KEY", "https://generativelanguage.googleapis.com/v1beta", "gemini-2.5-pro"),
-    "kimi": ("KIMI_API_KEY", "https://api.moonshot.cn/v1", "kimi-k2.5"),
+    "kimi": ("KIMI_API_KEY", "https://api.moonshot.cn/v1", "kimi-k2.5-instant"),
 }
 
 # Standardized error result factory
@@ -428,18 +428,27 @@ class LLMClient:
             oai_messages.append({"role": "system", "content": system})
         oai_messages.extend(messages)
 
+        # Kimi K2.5 thinking mode requires specific parameters
+        body = {
+            "model": model,
+            "messages": oai_messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+
+        if provider == "kimi" and "thinking" in model:
+            # K2.5 thinking enforces temperature=1.0, top_p=0.95
+            body["temperature"] = 1.0
+            body["top_p"] = 0.95
+            logger.info("Kimi K2.5 thinking mode: enforcing temperature=1.0, top_p=0.95")
+
         resp = await self._http.post(
             f"{base_url}/chat/completions",
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": model,
-                "messages": oai_messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            },
+            json=body,
         )
         resp.raise_for_status()
         data = resp.json()

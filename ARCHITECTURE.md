@@ -49,9 +49,9 @@ No containers. No Redis. No separate services. One process, one database file, m
 - **Sub-agents**: ALWAYS — research is embarrassingly parallel (3-6 threads per query, then synthesis)
 - **Context receives**: Research query, known knowledge gaps, preferred source types
 
-### 🛡️ Guardian (Security Lead)
-- **Role**: Security review of Builder output, config validation, prompt injection detection, permissions monitoring, cost tracking
-- **Model**: Precise model (deepseek-chat or claude-sonnet-4-5)
+### 🛡️ Guardian (Quality + Security Gatekeeper)
+- **Role**: Full quality and security gatekeeper — credential scanning, breaking change detection (diff + caller analysis), code convention enforcement (user-defined rules), rollback decision logic (rollback/escalate/flag for human), config validation, prompt injection detection, permissions monitoring, cost tracking
+- **Model**: Qwen3 Plus (qwen-plus) default; alternatives: DeepSeek V3.2 Chat (budget), Kimi K2.5 Instant
 - **Runs as**: Spawned session from Cortex
 - **Permissions**: Read-only on all agent outputs, can BLOCK actions, monitors costs
 - **Sub-agents**: NEVER — must see full picture
