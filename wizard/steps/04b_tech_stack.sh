@@ -18,14 +18,14 @@ case "$QUICK_CHOICE" in
         state_set "tech_stack.language" "python"
         state_set "tech_stack.frameworks" "FastAPI"
         state_set "tech_stack.package_manager" "pip"
-        state_set "tech_stack.database" ""
+        state_set "tech_stack.database" "SQLite"
         state_set "tech_stack.other" ""
         wizard_divider
         gum style --bold "Tech Stack Configuration (defaults):"
         echo "  Language:        python"
         echo "  Frameworks:      FastAPI"
         echo "  Package Manager: pip"
-        echo "  Database:        (no preference)"
+        echo "  Database:        SQLite"
         wizard_success "Tech stack defaults applied!"
         return 0 2>/dev/null || exit 0
         ;;
