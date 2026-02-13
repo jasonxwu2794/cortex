@@ -24,10 +24,10 @@ No Docker. No Redis. No YAML files. Just one SQLite database and a system that g
 | 💾 | **Advanced Memory System** | Importance scoring, semantic search, deduplication, automatic consolidation |
 | 🧙 | **One-Command Installer** | Beautiful TUI wizard powered by [gum](https://github.com/charmbracelet/gum) — no config files to edit |
 | 🔗 | **Knowledge Graph** | Memories link to related memories — "likes Python" connects to "builds ML pipelines" |
-| 🤖 | **Multi-Provider AI** | Claude, DeepSeek, Qwen, MiniMax, Kimi, Codestral — mix and match per agent |
+| 🤖 | **Multi-Provider AI** | Claude, DeepSeek, Qwen, Gemini, Kimi — mix and match per agent |
 | 💬 | **Your Platform** | Telegram, Discord, Signal, or CLI |
 | ⚙️ | **Re-runnable Wizard** | Change models, add integrations, tweak personality — anytime, no manual editing |
-| 🛡️ | **Guardian Agent** | Monitors security, validates configs, tracks costs |
+| 🛡️ | **Guardian Agent** | Credential scanning, breaking change detection, code conventions, rollback decisions |
 | 🔄 | **Memory That Grows** | Knowledge cache of verified facts, auto-tagging, feedback-driven importance |
 | 📋 | **Project Mode** | Idea backlog, spec writing, Feature→Task hierarchy |
 | 🔨 | **Collaboration Pipeline** | Researcher→Builder→Verifier→Guardian→Cortex review chain |
@@ -72,7 +72,7 @@ That's it. You're talking to a 5-agent AI system with persistent memory.
 | 🔨 **Builder** | Engineer | Generates code, runs tools, debugs — sandboxed, no internet access |
 | 🔬 **Researcher** | Research & Synthesis | Searches the web, reads docs, synthesizes findings in parallel |
 | ✅ **Verifier** | Quality Assurance | Verifies claims, catches hallucinations, updates the knowledge cache |
-| 🛡️ **Guardian** | Security Lead | Reviews Builder output, monitors costs, blocks unsafe actions |
+| 🛡️ **Guardian** | Quality + Security Gate | Credential scanning, breaking change detection, convention enforcement, rollback decisions |
 
 ### How They Work Together
 
@@ -168,13 +168,14 @@ The wizard walks you through everything. No config files. Re-run anytime with `.
 2. **OpenClaw install** — sets up the agent runtime + systemd service
 3. **Configuration mode** — ⚡ Recommended (defaults) or ⚙️ Custom (full control)
 4. **About you** — name, domain, current work (personalizes all agents)
-5. **Cortex's personality** — communication style, verbosity, custom notes
-6. **Model selection** — pick an LLM for each agent with cost estimates
-7. **API keys** — guided entry with instant validation
-8. **Memory tier** — Full / Standard + embedding choice (Local / API)
-9. **Messaging platform** — Telegram, Discord, Signal, or CLI
-10. **Tool selection** — web search, GitHub, file access, code execution
-11. **Deploy** — generates configs, starts agents, Cortex says hello
+5. **Tech stack** — language, frameworks, tools
+6. **Cortex's personality** — communication style, verbosity
+7. **Model selection** — pick an LLM for each agent
+8. **API keys** — guided entry with instant validation
+9. **Memory tier** — Full / Standard + embedding choice
+10. **Messaging platform** — Telegram, Discord, Signal, or CLI
+11. **Tool selection** — web search, GitHub, file access, code execution
+12. **Deploy** — generates configs, starts agents, Cortex says hello
 
 ---
 
@@ -188,7 +189,7 @@ The wizard walks you through everything. No config files. Re-run anytime with `.
 | **git** | any | any |
 | **Cost** | ~$5/mo VPS + ~$10/mo API | ~$15/mo VPS + ~$30/mo API |
 
-You'll need an API key for at least one provider: [Anthropic](https://console.anthropic.com/settings/keys), [DeepSeek](https://platform.deepseek.com/api_keys), [Alibaba (Qwen)](https://dashscope.console.aliyun.com/apiKey), [MiniMax](https://www.minimaxi.com/platform), [Moonshot (Kimi)](https://platform.moonshot.cn/console/api-keys), or [Mistral](https://console.mistral.ai/api-keys).
+You'll need an API key for at least one provider: [Anthropic](https://console.anthropic.com/settings/keys), [DeepSeek](https://platform.deepseek.com/api_keys), [Alibaba (Qwen)](https://dashscope.console.aliyun.com/apiKey), [Google (Gemini)](https://aistudio.google.com/apikey), or [Moonshot (Kimi)](https://platform.moonshot.cn/console/api-keys).
 
 ---
 
@@ -203,10 +204,11 @@ MemoryEnhancedMultiAgent/
 ├── wizard/
 │   ├── wizard.sh                 # Main wizard entry point
 │   ├── utils.sh                  # Shared TUI helpers
-│   └── steps/                    # Wizard steps (01–11)
+│   └── steps/                    # Wizard steps (01–12)
 │       ├── 01_prerequisites.sh
 │       ├── 04b_tech_stack.sh     # Language/framework selection
 │       ├── 08_memory_setup.sh    # Memory tier + embeddings
+│       ├── 12_deploy.sh          # Generate configs, start agents
 │       └── ...
 ├── agents/
 │   ├── session_manager.py        # Agent lifecycle & session routing
