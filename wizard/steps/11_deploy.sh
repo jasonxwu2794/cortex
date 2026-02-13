@@ -33,13 +33,13 @@ TECH_CSS="$(state_get 'tech_stack.css' '')"
 TECH_DATABASE="$(state_get 'tech_stack.database' '')"
 TECH_OTHER="$(state_get 'tech_stack.other' '')"
 
-MODEL_BRAIN="$(state_get 'models.brain' 'claude-sonnet-4')"
-MODEL_BUILDER="$(state_get 'models.builder' 'deepseek-v3')"
+MODEL_BRAIN="$(state_get 'models.brain' 'claude-opus-4-6')"
+MODEL_BUILDER="$(state_get 'models.builder' 'deepseek-reasoner')"
 MODEL_RESEARCHER_THINKING="$(state_get 'models.researcher.thinking' 'kimi-k2.5-thinking')"
 MODEL_RESEARCHER_INSTANT="$(state_get 'models.researcher.instant' 'kimi-k2.5-instant')"
 MODEL_RESEARCHER="$MODEL_RESEARCHER_THINKING"
-MODEL_VERIFIER="$(state_get 'models.verifier' 'qwen-max')"
-MODEL_GUARDIAN="$(state_get 'models.guardian' 'claude-sonnet-4')"
+MODEL_VERIFIER="$(state_get 'models.verifier' 'deepseek-reasoner')"
+MODEL_GUARDIAN="$(state_get 'models.guardian' 'deepseek-chat')"
 
 # --- Ensure directories ---
 mkdir -p "$OC_WORKSPACE/data"
