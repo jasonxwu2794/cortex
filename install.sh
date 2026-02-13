@@ -29,6 +29,20 @@ echo -e "${BOLD}║   Memory-Enhanced Multi-Agent System Installer   ║${RESET}
 echo -e "${BOLD}╚══════════════════════════════════════════════════╝${RESET}"
 echo ""
 
+# --- Step 0: Ensure git and curl exist (needed to bootstrap) ---
+for cmd in git curl; do
+    if ! command -v $cmd &>/dev/null; then
+        info "Installing $cmd..."
+        if command -v apt-get &>/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq $cmd
+        elif command -v dnf &>/dev/null; then
+            sudo dnf install -y $cmd
+        else
+            fail "$cmd is required. Please install it manually."
+        fi
+    fi
+done
+
 # --- Step 1: Clone or update the repo ---
 if [ -d "$INSTALL_DIR/.git" ]; then
     info "Repository found at $INSTALL_DIR — updating..."
@@ -41,11 +55,6 @@ else
 fi
 
 ok "Repository ready at $INSTALL_DIR"
-
-# --- Step 1b: Install Python dependencies ---
-info "Installing Python dependencies..."
-pip install -r "$INSTALL_DIR/requirements.txt" -q 2>/dev/null || pip3 install -r "$INSTALL_DIR/requirements.txt" -q 2>/dev/null || warn "pip install failed — install dependencies manually"
-ok "Python dependencies installed"
 
 # --- Step 2: Install gum if missing ---
 install_gum() {
