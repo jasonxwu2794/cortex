@@ -144,6 +144,24 @@
 
 ---
 
+## Future: Standalone Mode 🔓
+
+OpenClaw independence roadmap — progressively replace external dependencies.
+
+### v2: Abstraction Layer
+- [ ] `MessagingProvider` interface — abstract messaging behind a clean API
+- [ ] `SessionProvider` interface — abstract session management
+- [ ] OpenClaw becomes one implementation of these interfaces (swappable)
+
+### v3: Standalone (No OpenClaw)
+- [ ] Pure Python gateway — FastAPI service + systemd unit (replaces Node.js gateway)
+- [ ] Built-in web chat UI — WebSocket real-time chat, agent activity panel, file upload
+- [ ] Mobile-friendly PWA option — app-like experience from any browser
+- [ ] Terminal TUI — `cortex chat` via SSH, zero frontend (textual/rich)
+- [ ] APScheduler replaces OpenClaw cron
+- [ ] Optional platform add-ons — Telegram, Discord, Signal as plugins (not requirements)
+- [ ] Single dependency: Python 3.10+ (no Node.js)
+
 ## Future: Model Fallback Chains ⛓️
 
 - [ ] Primary → fallback → emergency model chain per agent
