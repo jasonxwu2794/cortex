@@ -21,10 +21,10 @@ No Docker. No Redis. No YAML files. Just one SQLite database and a system that g
 | | Feature | Details |
 |---|---------|---------|
 | 🧠 | **5 Specialized Agents** | Cortex orchestrates, Builder codes, Researcher researches, Verifier verifies, Guardian protects |
-| 💾 | **Advanced Memory System** | Importance scoring, semantic search, deduplication, automatic consolidation |
+| 💾 | **Custom Memory Engine** | ONNX embeddings (MiniLM-L6-v2), SQLite, semantic search via exec scripts — replaces OpenClaw's built-in memory |
 | 🧙 | **One-Command Installer** | Beautiful TUI wizard powered by [gum](https://github.com/charmbracelet/gum) — no config files to edit |
 | 🔗 | **Knowledge Graph** | Memories link to related memories — "likes Python" connects to "builds ML pipelines" |
-| 🤖 | **Multi-Provider AI** | Claude, DeepSeek, Qwen, Gemini, Kimi — mix and match per agent |
+| 🤖 | **5 AI Providers** | Anthropic (Claude), DeepSeek, Qwen (Alibaba), Google Gemini, Kimi (Moonshot) — mix and match per agent |
 | 💬 | **Your Platform** | Telegram, Discord, Signal, or CLI |
 | ⚙️ | **Re-runnable Wizard** | Change models, add integrations, tweak personality — anytime, no manual editing |
 | 🛡️ | **Guardian Agent** | Credential scanning, breaking change detection, code conventions, rollback decisions |
@@ -73,9 +73,10 @@ curl -fsSL https://raw.githubusercontent.com/jasonxwu2794/MemoryEnhancedMultiAge
 **What happens next:**
 
 1. **Wizard launches** — a beautiful terminal UI walks you through setup
-2. **Pick your style** — choose models, memory tier, messaging platform, and Cortex's personality
+2. **Pick your style** — choose models, memory tier, messaging platform, and Cortex's personality (default tech stack: Python + FastAPI + React + Tailwind CSS + pip + SQLite)
 3. **Enter API keys** — wizard validates each one in real time
-4. **Agents deploy** — Cortex says hello on your chosen platform:
+4. **Everything installs** — Python deps, ONNX memory engine, cron jobs, agent configs
+5. **Agents deploy** — Cortex says hello on your chosen platform:
 
 ```
 Hey! 👋 I'm Cortex, your AI assistant. I'm all set up and ready to help
@@ -166,6 +167,7 @@ Every memory gets a composite score combining:
 - **🔄 Consolidation** — old short-term memories get clustered and summarized into long-term memory
 - **👍 Feedback-driven** — "that's right" boosts importance, "that's outdated" decays it
 - **🏠 Local embeddings** — MiniLM-L6-v2 via ONNX Runtime (~50MB, no PyTorch needed), free, private, ~95% quality of API models
+- **🔧 Custom engine** — OpenClaw's built-in `memory_search`/`memory_get` are disabled via `tools.deny`; all memory goes through `exec` calls to `scripts/memory_store.py` and `scripts/memory_recall.py`
 
 ---
 
