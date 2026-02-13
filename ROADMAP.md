@@ -103,6 +103,7 @@
   - License compliance checking (flag GPL/AGPL in MIT projects, etc.)
   - Attack surface review (endpoint exposure, auth gaps, input validation coverage)
   - Post-commit health checks with test runner integration (run tests after Guardian approves, auto-rollback on failure)
+  - Memory sanitization (scan at write time, periodic sweep of existing memories, quarantine flagged content for human review)
 
 ---
 
