@@ -1,8 +1,15 @@
-"""Embedding generation and similarity utilities."""
+"""Embedding generation and similarity utilities.
+
+Uses ONNX Runtime + tokenizers directly — no PyTorch dependency (~50MB total).
+Falls back to sentence-transformers if available.
+"""
 
 from __future__ import annotations
 
+import os
+import json
 import numpy as np
+from pathlib import Path
 from typing import Protocol
 
 
@@ -14,19 +21,114 @@ class Embedder(Protocol):
 
 _model_cache: dict[str, object] = {}
 
+# Default model cache directory
+_MODELS_DIR = Path(os.environ.get("EMBEDDING_MODELS_DIR", Path.home() / ".cache" / "embedding-models"))
 
-class LocalEmbedder:
-    """Local embeddings using sentence-transformers MiniLM-L6-v2 (ONNX backend preferred)."""
+
+class ONNXEmbedder:
+    """Local embeddings using ONNX Runtime + tokenizers (no PyTorch needed).
+
+    Downloads the ONNX model from HuggingFace on first use (~30MB).
+    """
+
+    MODEL_REPO = "sentence-transformers/all-MiniLM-L6-v2"
+    ONNX_FILE = "onnx/model.onnx"
+    DIM = 384
+
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+        self.model_name = model_name
+        if model_name not in _model_cache:
+            _model_cache[model_name] = self._load_model()
+        self._session, self._tokenizer = _model_cache[model_name]
+
+    def _download_model(self, model_dir: Path) -> None:
+        """Download ONNX model and tokenizer from HuggingFace."""
+        import urllib.request
+
+        model_dir.mkdir(parents=True, exist_ok=True)
+        base_url = f"https://huggingface.co/{self.MODEL_REPO}/resolve/main"
+
+        files = {
+            "onnx/model.onnx": "model.onnx",
+            "tokenizer.json": "tokenizer.json",
+            "tokenizer_config.json": "tokenizer_config.json",
+        }
+
+        for remote, local in files.items():
+            dest = model_dir / local
+            if not dest.exists():
+                url = f"{base_url}/{remote}"
+                urllib.request.urlretrieve(url, str(dest))
+
+    def _load_model(self):
+        """Load ONNX session and tokenizer."""
+        import onnxruntime as ort
+        from tokenizers import Tokenizer
+
+        model_dir = _MODELS_DIR / self.model_name
+
+        # Download if not cached
+        if not (model_dir / "model.onnx").exists():
+            self._download_model(model_dir)
+
+        session = ort.InferenceSession(
+            str(model_dir / "model.onnx"),
+            providers=["CPUExecutionProvider"],
+        )
+        tokenizer = Tokenizer.from_file(str(model_dir / "tokenizer.json"))
+        tokenizer.enable_padding(length=128)
+        tokenizer.enable_truncation(max_length=128)
+
+        return session, tokenizer
+
+    def _mean_pooling(self, token_embeddings: np.ndarray, attention_mask: np.ndarray) -> np.ndarray:
+        """Mean pooling with attention mask."""
+        mask_expanded = np.expand_dims(attention_mask, -1).astype(np.float32)
+        summed = np.sum(token_embeddings * mask_expanded, axis=1)
+        counts = np.clip(mask_expanded.sum(axis=1), a_min=1e-9, a_max=None)
+        return summed / counts
+
+    def _normalize(self, embeddings: np.ndarray) -> np.ndarray:
+        """L2 normalize."""
+        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+        norms = np.clip(norms, a_min=1e-9, a_max=None)
+        return embeddings / norms
+
+    def _encode(self, texts: list[str]) -> np.ndarray:
+        """Encode texts to normalized embeddings."""
+        encoded = self._tokenizer.encode_batch(texts)
+        input_ids = np.array([e.ids for e in encoded], dtype=np.int64)
+        attention_mask = np.array([e.attention_mask for e in encoded], dtype=np.int64)
+        token_type_ids = np.zeros_like(input_ids, dtype=np.int64)
+
+        outputs = self._session.run(
+            None,
+            {
+                "input_ids": input_ids,
+                "attention_mask": attention_mask,
+                "token_type_ids": token_type_ids,
+            },
+        )
+
+        embeddings = self._mean_pooling(outputs[0], attention_mask)
+        return self._normalize(embeddings)
+
+    def embed(self, text: str) -> np.ndarray:
+        return self._encode([text])[0]
+
+    def embed_batch(self, texts: list[str]) -> list[np.ndarray]:
+        embeddings = self._encode(texts)
+        return [embeddings[i] for i in range(len(texts))]
+
+
+class SentenceTransformersEmbedder:
+    """Fallback: sentence-transformers (requires PyTorch)."""
 
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
         self.model_name = model_name
         if model_name not in _model_cache:
             from sentence_transformers import SentenceTransformer
-            # Prefer ONNX backend (50MB vs 2GB PyTorch) — falls back to PyTorch if unavailable
-            try:
-                _model_cache[model_name] = SentenceTransformer(model_name, backend="onnx")
-            except (TypeError, ImportError, Exception):
-                _model_cache[model_name] = SentenceTransformer(model_name)
+            _model_cache[model_name] = SentenceTransformer(model_name)
         self.model = _model_cache[model_name]
 
     def embed(self, text: str) -> np.ndarray:
@@ -35,6 +137,25 @@ class LocalEmbedder:
     def embed_batch(self, texts: list[str]) -> list[np.ndarray]:
         embeddings = self.model.encode(texts, normalize_embeddings=True)
         return [embeddings[i] for i in range(len(texts))]
+
+
+def _create_local_embedder(model_name: str = "all-MiniLM-L6-v2") -> Embedder:
+    """Create the best available local embedder: ONNX first, sentence-transformers fallback."""
+    try:
+        import onnxruntime  # noqa: F401
+        import tokenizers  # noqa: F401
+        return ONNXEmbedder(model_name)
+    except ImportError:
+        pass
+
+    try:
+        return SentenceTransformersEmbedder(model_name)
+    except ImportError:
+        raise ImportError(
+            "No embedding backend available. Install one of:\n"
+            "  pip install onnxruntime tokenizers   (lightweight, recommended)\n"
+            "  pip install sentence-transformers     (heavier, requires PyTorch)"
+        )
 
 
 class APIEmbedder:
@@ -70,7 +191,7 @@ def get_embedder(config: dict | None = None) -> Embedder:
             model=cfg.get("model", "text-embedding-3-small"),
         )
     else:
-        embedder = LocalEmbedder(model_name=cfg.get("model", "all-MiniLM-L6-v2"))
+        embedder = _create_local_embedder(model_name=cfg.get("model", "all-MiniLM-L6-v2"))
 
     _embedder_cache[cache_key] = embedder
     return embedder
