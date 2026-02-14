@@ -102,10 +102,10 @@ if [ ${#MISSING[@]} -gt 0 ]; then
             "Node.js 18+"*)
                 case "$PKG_MGR" in
                     apt)
-                        wizard_spin "Installing Node.js 22.x..." bash -c "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt-get install -y -qq nodejs"
+                        wizard_spin "Installing Node.js 22.x..." bash -c "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - > /tmp/node-install.log 2>&1 && sudo apt-get install -y -qq nodejs >> /tmp/node-install.log 2>&1"
                         ;;
                     dnf)
-                        wizard_spin "Installing Node.js 22.x..." bash -c "curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo -E bash - && sudo dnf install -y nodejs"
+                        wizard_spin "Installing Node.js 22.x..." bash -c "curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo -E bash - > /tmp/node-install.log 2>&1 && sudo dnf install -y nodejs >> /tmp/node-install.log 2>&1"
                         ;;
                     pacman)
                         wizard_spin "Installing Node.js..." sudo pacman -Sy --noconfirm nodejs npm
@@ -148,16 +148,22 @@ fi
 # --- Ensure build tools are available (needed for Python packages with C extensions) ---
 if command -v apt-get &>/dev/null; then
     if ! dpkg -l build-essential &>/dev/null 2>&1; then
-        log_info "Installing build tools..."
-        sudo apt-get install -y -qq build-essential python3-dev jq 2>/dev/null || true
+        TOOLS_LOG="/tmp/build-tools-$$.log"
+        wizard_spin "Installing build tools..." sh -c "sudo apt-get install -y -qq build-essential python3-dev jq > $TOOLS_LOG 2>&1"
+        if [ $? -eq 0 ]; then
+            log_ok "Build tools installed"
+        else
+            log_warn "Build tools had issues (non-critical)"
+            cat "$TOOLS_LOG" 2>/dev/null
+        fi
+        rm -f "$TOOLS_LOG"
     fi
 fi
 
 # --- Ensure pip is available (Ubuntu may have Python without pip) ---
 if ! python3 -m pip --version &>/dev/null; then
-    log_warn "pip not found — installing..."
     if command -v apt-get &>/dev/null; then
-        sudo apt-get install -y -qq python3-pip 2>/dev/null || true
+        wizard_spin "Installing pip..." sh -c "sudo apt-get install -y -qq python3-pip 2>/dev/null"
     fi
     # Fallback: ensurepip
     if ! python3 -m pip --version &>/dev/null; then

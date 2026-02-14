@@ -27,7 +27,7 @@ fi
 
 # --- Install via npm ---
 log_info "Installing OpenClaw via npm..."
-wizard_spin "Installing openclaw globally..." npm install -g openclaw
+wizard_spin "Installing openclaw globally..." sh -c "npm install -g openclaw > /tmp/npm-install.log 2>&1"
 
 if ! has_cmd openclaw; then
     wizard_fail "OpenClaw installation failed. Check npm permissions."
@@ -78,14 +78,16 @@ fi
 log_info "Installing Aider (AI-powered code editor)..."
 # Aider install can fail on system urllib3 conflicts — catch all errors
 set +e
-wizard_spin "Installing aider-chat..." python3 -m pip install --break-system-packages --ignore-installed aider-chat
+AIDER_LOG="/tmp/aider-install-$$.log"
+wizard_spin "Installing aider-chat (this may take a minute)..." sh -c "python3 -m pip install --break-system-packages --ignore-installed aider-chat > $AIDER_LOG 2>&1"
 AIDER_RC=$?
 set -e
 if [ $AIDER_RC -ne 0 ]; then
-    log_warn "First attempt had issues, retrying with --force-reinstall..."
-    python3 -m pip install --break-system-packages --force-reinstall --no-deps urllib3 requests httpx 2>/dev/null || true
-    python3 -m pip install --break-system-packages --ignore-installed aider-chat 2>/dev/null || true
+    log_warn "First attempt had issues, retrying..."
+    python3 -m pip install --break-system-packages --force-reinstall --no-deps urllib3 requests httpx > /dev/null 2>&1 || true
+    python3 -m pip install --break-system-packages --ignore-installed aider-chat > /dev/null 2>&1 || true
 fi
+rm -f "$AIDER_LOG"
 
 if has_cmd aider; then
     AIDER_VER="$(timeout 5 aider --version 2>/dev/null || echo 'installed')"
