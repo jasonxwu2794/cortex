@@ -57,7 +57,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=$OPENCLAW_BIN gateway start
+ExecStart=$OPENCLAW_BIN gateway run
 Restart=on-failure
 RestartSec=5
 Environment=HOME=$HOME
