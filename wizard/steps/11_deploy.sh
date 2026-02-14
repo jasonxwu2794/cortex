@@ -5,7 +5,7 @@
 # AGENTS.md, memory DB init, gateway restart.
 # ============================================================================
 
-wizard_header "11" "Deploy" "Generating configuration and launching your agents..."
+wizard_header "12" "Deploy" "Generating configuration and launching your agents..."
 
 # --- Configuration Summary ---
 _summary_brain_name="$(state_get 'brain.name' 'Cortex')"
@@ -16,7 +16,17 @@ _summary_model_verifier="$(state_get 'models.verifier' 'deepseek-reasoner')"
 _summary_model_guardian="$(state_get 'models.guardian' 'deepseek-chat')"
 _summary_channel="$(state_get 'messaging' 'cli')"
 _summary_memory="$(state_get 'memory_tier' 'full')"
-_summary_tools="$(state_get 'tools' 'default')"
+_summary_tools_raw="$(state_get 'tools' 'default')"
+# Clean up JSON array to readable string
+_summary_tools="$(echo "$_summary_tools_raw" | python3 -c "
+import sys, json
+try:
+    tools = json.load(sys.stdin)
+    names = {'web_search':'Web Search','file_access':'Files','code_execution':'Code','web_fetch':'Web Fetch','github':'GitHub'}
+    print(', '.join(names.get(t,t) for t in tools))
+except:
+    print(sys.stdin.read().strip())
+" 2>/dev/null || echo "$_summary_tools_raw")"
 _summary_language="$(state_get 'tech_stack.language' '')"
 _summary_framework="$(state_get 'tech_stack.frameworks' '')"
 
