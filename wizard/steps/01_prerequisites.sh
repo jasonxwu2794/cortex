@@ -49,9 +49,9 @@ for dep in "Python 3.10+" "git" "curl" "Node.js 18+"; do
     status="${DEPS_STATUS[$dep]}"
     ver="${DEPS_VERSION[$dep]}"
     case "$status" in
-        ok)       results+="  ✅ $dep ($ver)\n" ;;
-        missing)  results+="  ❌ $dep — not found\n" ;;
-        outdated) results+="  ❌ $dep — found $ver, need newer\n" ;;
+        ok)       results+="   ✅  $dep ($ver)\n" ;;
+        missing)  results+="   ❌  $dep — not found\n" ;;
+        outdated) results+="   ❌  $dep — found $ver, need newer\n" ;;
     esac
 done
 

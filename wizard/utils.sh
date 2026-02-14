@@ -19,10 +19,10 @@ DIM='\033[2m'
 RESET='\033[0m'
 
 # --- Logging ---
-log_info()  { echo -e "${CYAN}ℹ  ${RESET} $*"; }
-log_ok()    { echo -e "${GREEN}✅ ${RESET} $*"; }
-log_warn()  { echo -e "${YELLOW}⚠  ${RESET} $*"; }
-log_error() { echo -e "${RED}❌ ${RESET} $*"; }
+log_info()  { echo -e "  ${CYAN}ℹ   ${RESET} $*"; }
+log_ok()    { echo -e "  ${GREEN}✅  ${RESET} $*"; }
+log_warn()  { echo -e "  ${YELLOW}⚠   ${RESET} $*"; }
+log_error() { echo -e "  ${RED}❌  ${RESET} $*"; }
 
 # --- gum Wrappers ---
 
@@ -121,7 +121,7 @@ wizard_success() {
         --border-foreground 2 \
         --padding "1 4" \
         --margin "0 2" \
-        "✅  $message      "
+        " ✅  $message      "
 }
 
 # Display an error banner
@@ -131,9 +131,9 @@ wizard_fail() {
         --foreground 1 \
         --border rounded \
         --border-foreground 1 \
-        --padding "1 3" \
+        --padding "1 4" \
         --margin "0 2" \
-        "❌  $message      "
+        " ❌  $message      "
 }
 
 # --- State Management ---
