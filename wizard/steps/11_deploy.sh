@@ -492,22 +492,18 @@ case "$MESSAGING" in
         if [ -n "$TELEGRAM_TOKEN" ]; then
             TELEGRAM_OWNER="$(state_get 'telegram_owner' '')"
             if [ -n "$TELEGRAM_OWNER" ]; then
-                ALLOW_FROM="[\"$TELEGRAM_OWNER\"]"
-                DM_POLICY="allowlist"
+                DM_POLICY_JSON="{\"mode\":\"allowlist\",\"allowFrom\":[\"$TELEGRAM_OWNER\"]}"
             else
-                ALLOW_FROM='["*"]'
-                DM_POLICY="open"
+                DM_POLICY_JSON="{\"mode\":\"open\",\"allowFrom\":[\"*\"]}"
             fi
             OC_JSON="$(echo "$OC_JSON" | jq \
                 --arg token "$TELEGRAM_TOKEN" \
-                --arg dmPolicy "$DM_POLICY" \
-                --argjson allowFrom "$ALLOW_FROM" \
+                --argjson dmPolicy "$DM_POLICY_JSON" \
                 '.channels.telegram.enabled = true |
                  .channels.telegram.botToken = $token |
                  .channels.telegram.dmPolicy = $dmPolicy |
                  .channels.telegram.groupPolicy = "disabled" |
                  .channels.telegram.streamMode = "partial" |
-                 .channels.telegram.allowFrom = $allowFrom |
                  .plugins.entries.telegram.enabled = true')" || {
                 log_warn "Config generation issue — Telegram config may need manual review"
             }
