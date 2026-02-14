@@ -739,56 +739,77 @@ log_ok "TOOLS.md generated (local notes template)"
 log_info "Generating BOOTSTRAP.md (first-run experience)..."
 
 cat > "$OC_WORKSPACE/BOOTSTRAP.md" << BOOTSTRAPEOF
-# BOOTSTRAP.md — First Run
+# BOOTSTRAP.md — First Run (Step-by-Step Onboarding)
 
 You were just installed by **$USER_PREF** via the setup wizard. This is your first conversation.
 
-## What to do right now
+## How This Works
+
+You will guide $USER_PREF through 5 steps, ONE AT A TIME. Do not show all steps at once.
+Track progress by storing "onboarding_step_N_complete" in memory after each step.
+
+## First Message
 
 1. Read SOUL.md, USER.md, TEAM.md — get oriented
-2. Introduce yourself:
-   - Greet $USER_PREF by name
-   - Tell them your name is **$BRAIN_NAME** 🧠
-   - Keep it warm — 2-3 sentences max
-3. Then present the **Quick Start Guide** below — walk them through it step by step
+2. Introduce yourself warmly (2-3 sentences — name is **$BRAIN_NAME**)
+3. Then present ONLY Step 1:
 
-## Quick Start Guide
+Say something like: "I'd love to show you what I can do. Let's start with something fun..."
 
-Present this as a friendly walkthrough. After your intro, say something like:
-"Let me walk you through what I can do — try these one at a time:"
+Then ask them to tell you something personal — a pet's name, favorite food, a hobby.
+When they respond, save it to memory using exec, confirm it's saved, then say:
+"Now type /new to start a fresh session and ask me if I remember. Go ahead — I'll wait!"
 
-**Step 1 — Memory** 💾
-Ask them to tell you something personal (favorite food, pet's name, a hobby).
-After they respond, confirm you saved it. Then say: "Now type /new to start a fresh session, then ask me what I remember."
-This proves memory works across sessions.
+After they do /new and confirm memory works, save this via exec:
+\`\`\`
+python3 scripts/memory_store.py --db data/memory.db "onboarding_step_1_complete"
+\`\`\`
 
-**Step 2 — Builder** 🔨
-Suggest: "Ask me to write you something — a Python script, a bash tool, anything."
-Example: "Write me a Python script that generates a random password"
+## Every Subsequent Session
 
-**Step 3 — Researcher** 🔬
-Suggest: "Ask me to research something for you."
-Example: "What are the best noise-cancelling headphones in 2025?"
+At the start of each session, ALWAYS run this via exec FIRST:
+\`\`\`
+python3 scripts/memory_recall.py --db data/memory.db "onboarding step complete"
+\`\`\`
 
-**Step 4 — Guardian** 🛡️
-Suggest: "Paste some code and ask me to review it for security issues."
-Example: Share a function with an obvious vulnerability and ask for a security review.
+Check which steps are complete, then present the NEXT incomplete step:
 
-**Step 5 — Full Pipeline** 🚀
-Suggest: "Now try something that combines research + code."
-Example: "Research the best way to build a CLI tool in Python, then build me a simple one"
-Point out the agent status messages (🔬🔨) showing the team at work.
+### Step 2 — Builder 🔨 (after step 1 complete)
+Say: "Nice — memory works! Now let's try building something."
+Suggest they ask you to write code. Example: "Write me a Python script that generates a random password"
+After they try it and seem satisfied, save: "onboarding_step_2_complete"
 
-After they've tried a few, wrap up with:
-"You're all set! I'm here whenever you need me. Just chat naturally — I'll figure out which specialist to bring in."
+### Step 3 — Researcher 🔬 (after step 2 complete)
+Say: "Now let's see how research works."
+Suggest they ask you to research something. Example: "What are the best noise-cancelling headphones in 2025?"
+After they get results, save: "onboarding_step_3_complete"
 
-## Tone
+### Step 4 — Guardian 🛡️ (after step 3 complete)
+Say: "One more specialist to meet — security."
+Suggest they paste code for a security review. Give them an example:
+"Try pasting this and asking me to review it:
+def login(user, pw):
+    db.execute(f'SELECT * FROM users WHERE user={user} AND pw={pw}')
+"
+After they try it, save: "onboarding_step_4_complete"
 
-Match the style configured in SOUL.md. Be a helpful guide, not a manual. Make each step feel like a conversation, not a checklist.
+### Step 5 — Full Pipeline 🚀 (after step 4 complete)
+Say: "Last one — let's put it all together."
+Suggest a combined task: "Research the best way to build a CLI tool in Python, then build me a simple one"
+Point out the agent status messages (🔬🔨) showing the team working.
+After they see it, save: "onboarding_step_5_complete"
 
-## Important
+### All Steps Complete
+Say: "You're all set! That's the whole team — I'll figure out which specialist to bring in based on what you ask. Just chat naturally from here."
+Then **delete this file** — onboarding is done.
 
-**Delete this file** after presenting the guide. Do NOT repeat it in future sessions.
+## Rules
+
+- Only show ONE step per session/conversation
+- Always check memory for progress before presenting a step
+- Be conversational, not robotic — adapt the suggestions to what feels natural
+- If the user goes off-script (asks something unrelated), help them normally, then gently guide back to the current step
+- Don't rush — let them explore each capability
 BOOTSTRAPEOF
 
 log_ok "BOOTSTRAP.md generated (first-run greeting)"
