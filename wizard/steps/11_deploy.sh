@@ -20,28 +20,25 @@ _summary_tools="$(state_get 'tools' 'default')"
 _summary_language="$(state_get 'tech_stack.language' '')"
 _summary_framework="$(state_get 'tech_stack.frameworks' '')"
 
-_summary_lines=(
-    "📋  Configuration Summary"
-    ""
-    "  🧠  Brain:        $_summary_brain_name ($_summary_model_brain)"
-    "  🔨  Builder:      $_summary_model_builder"
-    "  🔬  Researcher:   $_summary_model_researcher"
-    "  ✅  Verifier:     $_summary_model_verifier"
-    "  🛡   Guardian:     $_summary_model_guardian"
-    ""
-    "  💬  Channel:      $_summary_channel"
-    "  💾  Memory:       $_summary_memory"
-    "  🔧  Tools:        $_summary_tools"
+gum style --bold --foreground 212 "📋  Configuration Summary"
+echo ""
+
+_table_fmt="Setting,Value\nBrain,%s (%s)\nBuilder,%s\nResearcher,%s\nVerifier,%s\nGuardian,%s\nChannel,%s\nMemory,%s\nTools,%s"
+_table_args=(
+    "$_summary_brain_name" "$_summary_model_brain"
+    "$_summary_model_builder"
+    "$_summary_model_researcher"
+    "$_summary_model_verifier"
+    "$_summary_model_guardian"
+    "$_summary_channel"
+    "$_summary_memory"
+    "$_summary_tools"
 )
 
-[ -n "$_summary_language" ] && _summary_lines+=("  💻  Language:     $_summary_language")
-[ -n "$_summary_framework" ] && _summary_lines+=("  📦  Framework:   $_summary_framework")
+[ -n "$_summary_language" ] && { _table_fmt="${_table_fmt}\nLanguage,%s"; _table_args+=("$_summary_language"); }
+[ -n "$_summary_framework" ] && { _table_fmt="${_table_fmt}\nFramework,%s"; _table_args+=("$_summary_framework"); }
 
-gum style \
-    --border rounded \
-    --border-foreground 212 \
-    --padding "1 3" \
-    "${_summary_lines[@]}"
+printf "$_table_fmt" "${_table_args[@]}" | gum table --border.foreground 212
 
 echo ""
 if ! wizard_confirm "Deploy with these settings?"; then
