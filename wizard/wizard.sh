@@ -31,11 +31,11 @@ gum style \
     --margin "1 4" \
     --bold \
     --align center \
-    "🧠 Memory-Enhanced Multi-Agent System" \
+    "Memory-Enhanced Multi-Agent System" \
     "" \
     "Setup Wizard" \
     "" \
-    "$(if [ "$RECONFIGURE" = "1" ]; then echo "♻️  Reconfiguration Mode"; else echo "Fresh Install"; fi)"
+    "$(if [ "$RECONFIGURE" = "1" ]; then echo "Reconfiguration Mode"; else echo "Fresh Install"; fi)"
 
 echo ""
 

@@ -968,16 +968,16 @@ gum style \
     --padding "1 3" \
     --margin "0 2" \
     --bold \
-    "🎉 Deployment Complete!" \
+    "Deployment Complete!" \
     "" \
-    "  👤 User:     $USER_NAME ($USER_PREF)" \
-    "  🧠 Brain:    $BRAIN_NAME ($MODEL_BRAIN)" \
-    "  🔨 Builder:  $MODEL_BUILDER" \
-    "  🔬 Researcher:    $MODEL_RESEARCHER_THINKING / $MODEL_RESEARCHER_INSTANT" \
-    "  ✅ Verifier:  $MODEL_VERIFIER" \
-    "  🛡️ Guardian: $MODEL_GUARDIAN" \
-    "  💾 Memory:   $MEMORY_TIER" \
-    "  💬 Channel:  $MESSAGING" \
+    "  User:        $USER_NAME ($USER_PREF)" \
+    "  Brain:       $BRAIN_NAME ($MODEL_BRAIN)" \
+    "  Builder:     $MODEL_BUILDER" \
+    "  Researcher:  $MODEL_RESEARCHER_THINKING / $MODEL_RESEARCHER_INSTANT" \
+    "  Verifier:    $MODEL_VERIFIER" \
+    "  Guardian:    $MODEL_GUARDIAN" \
+    "  Memory:      $MEMORY_TIER" \
+    "  Channel:     $MESSAGING" \
     "" \
     "  Config:  $OC_CONFIG" \
     "  Auth:    $OC_AUTH" \
@@ -995,19 +995,19 @@ gum style \
     --border-foreground 240 \
     --padding "1 2" \
     --margin "0 4" \
-    "📋 What to try next:" \
+    "What to try next:" \
     "" \
-    "  □ Say hello — test that $BRAIN_NAME responds" \
-    "  □ Drop your first idea — /idea build a REST API" \
-    "  □ Ask a question — Researcher kicks in automatically" \
-    "  □ Check verbose mode — agent activity is visible by default" \
-    "  □ Morning digest arrives at your configured time" \
+    "  - Say hello — test that $BRAIN_NAME responds" \
+    "  - Drop your first idea — /idea build a REST API" \
+    "  - Ask a question — Researcher kicks in automatically" \
+    "  - Check verbose mode — agent activity is visible by default" \
+    "  - Morning digest arrives at your configured time" \
     "" \
     "  Power moves:" \
-    "  □ /project — see your project board" \
-    "  □ /ideas — browse your idea backlog" \
-    "  □ /status — system health" \
+    "  - /project — see your project board" \
+    "  - /ideas — browse your idea backlog" \
+    "  - /status — system health" \
     "" \
     "  Debug: see docs/DEBUG_CHECKLIST.md"
 
-wizard_success "Your multi-agent system is live! 🚀"
+wizard_success "Your multi-agent system is live!"
