@@ -471,11 +471,16 @@ brain_model_id() {
 
 BRAIN_MODEL_ID="$(brain_model_id "$MODEL_BRAIN")"
 
+# Generate gateway auth token
+GW_TOKEN="$(openssl rand -hex 16 2>/dev/null || python3 -c 'import secrets;print(secrets.token_hex(16))')"
+
 # Set agent defaults
 OC_JSON="$(echo "$OC_JSON" | jq \
     --arg model "$BRAIN_MODEL_ID" \
     --arg ws "$OC_WORKSPACE" \
+    --arg gwtoken "$GW_TOKEN" \
     '.gateway.mode = "local" |
+     .gateway.auth.token = $gwtoken |
      .agents.defaults.model.primary = $model |
      .agents.defaults.workspace = $ws |
      .agents.defaults.memorySearch.enabled = false |
