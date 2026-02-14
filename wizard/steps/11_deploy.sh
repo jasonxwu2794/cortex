@@ -934,7 +934,7 @@ GATEWAY_OK=false
 # Try systemd user service first
 if has_cmd systemctl && systemctl --user is-enabled openclaw-gateway.service 2>/dev/null; then
     gum spin --spinner dot --title "Restarting OpenClaw gateway..." -- \
-        systemctl --user restart openclaw-gateway.service 2>/dev/null
+        bash -c 'systemctl --user restart openclaw-gateway.service 2>/dev/null || true'
     sleep 3
     if systemctl --user is-active --quiet openclaw-gateway.service 2>/dev/null; then
         log_ok "OpenClaw gateway restarted (systemd)"
