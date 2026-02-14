@@ -133,7 +133,7 @@ wizard_fail() {
         --border-foreground 1 \
         --padding "1 3" \
         --margin "0 2" \
-        "❌ $message"
+        "❌  $message      "
 }
 
 # --- State Management ---
