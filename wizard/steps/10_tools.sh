@@ -25,7 +25,7 @@ if [ "$QUICK_CHOICE" = "Use recommended defaults" ]; then
 
     # GitHub is essential for GitOps — always ask for token
     echo ""
-    gum style --foreground 214 --bold "  🐙 GitHub Setup (recommended for GitOps)"
+    gum style --foreground 212 --bold "  🐙 GitHub Setup (recommended for GitOps)"
     gum style --foreground 240 "  Your agents auto-commit work to a Git repo."
     gum style --foreground 240 "  A GitHub token enables remote backup + collaboration."
     gum style --foreground 240 "  Create one at: https://github.com/settings/tokens"
@@ -126,7 +126,7 @@ fi
 
 # ─── Proactive Features ───────────────────────────────────────────────────────
 echo ""
-gum style --foreground 214 --bold "  ☀️ Proactive Features"
+gum style --foreground 212 --bold "  ☀️ Proactive Features"
 echo ""
 
 MORNING_BRIEF="$(gum confirm --default=yes "  Enable Morning Brief? (daily digest of progress, queue, health)" && echo "true" || echo "false")"

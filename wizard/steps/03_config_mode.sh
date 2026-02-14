@@ -8,7 +8,7 @@ wizard_header "3" "Configuration Mode" "How would you like to set things up?"
 
 PREV_MODE="$(state_get 'config_mode' '')"
 
-gum style --foreground 250 --padding "0 2" \
+gum style --foreground 240 --padding "0 2" \
     "⚡ Recommended — Sensible defaults pre-filled. Just tweak what you want." \
     "⚙️  Custom — Every field starts blank. Full control over every choice."
 

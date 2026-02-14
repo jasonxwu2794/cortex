@@ -24,7 +24,7 @@ if [ -z "$PREV_TIER" ] && is_recommended; then
     PREV_TIER="full"
 fi
 
-gum style --foreground 250 --padding "0 2" \
+gum style --foreground 240 --padding "0 2" \
     "📚 Full     — Everything: daily logs, long-term memory, cross-session recall" \
     "             Storage: ~50-200MB/mo  |  Token usage: Higher  |  Recall: Best" \
     "" \

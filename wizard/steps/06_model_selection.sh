@@ -37,6 +37,9 @@ if [ "$QUICK_CHOICE" = "Use recommended defaults" ]; then
         "  Verifier      DeepSeek V3.2 Reasoner    \$0.28     Code review + QA" \
         "  Guardian      DeepSeek V3.2 Chat        \$0.28     Security gate"
     echo ""
+    gum style --foreground 240 "  Estimated cost at moderate usage (~1000 messages/day):"
+    gum style --foreground 212 "  ~\$3-5/day with recommended models  ·  Brain (Opus) is the main cost driver"
+    echo ""
     wizard_success "Model defaults applied!"
     return 0 2>/dev/null || exit 0
 fi
@@ -198,4 +201,7 @@ for agent in "${AGENT_ORDER[@]}"; do
 done
 
 wizard_divider
+echo ""
+gum style --foreground 240 "  💡 Cost varies by model and usage. Monitor spending via your provider dashboards."
+echo ""
 wizard_success "Model selection complete!"

@@ -1044,3 +1044,6 @@ gum style \
     "  Debug: see docs/DEBUG_CHECKLIST.md"
 
 wizard_success "Your multi-agent system is live!"
+
+# Terminal bell to signal completion
+printf '\a'

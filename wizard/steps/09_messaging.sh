@@ -29,7 +29,7 @@ case "$PLATFORM" in
         wizard_divider
         gum style --bold --foreground 212 "Telegram Bot Setup"
         echo ""
-        gum style --foreground 250 --padding "0 2" \
+        gum style --foreground 240 --padding "0 2" \
             "1. Open Telegram and message @BotFather" \
             "2. Send /newbot and follow the prompts" \
             "3. Copy the API token" \
@@ -87,7 +87,7 @@ case "$PLATFORM" in
         wizard_divider
         gum style --bold --foreground 212 "Discord Bot Setup"
         echo ""
-        gum style --foreground 250 --padding "0 2" \
+        gum style --foreground 240 --padding "0 2" \
             "1. Go to https://discord.com/developers/applications" \
             "2. Create a new application → Bot section" \
             "3. Copy the bot token" \
@@ -108,7 +108,7 @@ case "$PLATFORM" in
         wizard_divider
         gum style --bold --foreground 212 "Signal Setup"
         echo ""
-        gum style --foreground 250 --padding "0 2" \
+        gum style --foreground 240 --padding "0 2" \
             "1. Install signal-cli: https://github.com/AsamK/signal-cli" \
             "2. Register or link to your phone number" \
             "3. Provide your phone number below"

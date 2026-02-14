@@ -41,8 +41,12 @@ CURRENT_WORK="$(wizard_input "🔨 What are you currently working on?" "e.g. Bui
 
 # --- Timezone ---
 DEF_TZ="$(state_get 'user.timezone' '')"
+DETECTED_TZ="$(timedatectl show -p Timezone --value 2>/dev/null || cat /etc/timezone 2>/dev/null || echo '')"
 echo ""
 gum style --foreground 240 "  Your timezone is used for scheduling (e.g. morning brief at 08:00 local time)"
+if [ -n "$DETECTED_TZ" ] && [ -z "$DEF_TZ" ]; then
+    gum style --foreground 6 "  Auto-detected: $DETECTED_TZ"
+fi
 TZ_CHOICE="$(gum choose --header "🕐 Select your timezone (or pick 'Other' to type):" \
     "UTC" \
     "US/Eastern" \
@@ -62,7 +66,7 @@ TZ_CHOICE="$(gum choose --header "🕐 Select your timezone (or pick 'Other' to 
     "Other")" || TZ_CHOICE="UTC"
 
 if [ "$TZ_CHOICE" = "Other" ]; then
-    TIMEZONE="$(wizard_input "🕐 Enter your timezone" "e.g. America/New_York" "${DEF_TZ:-UTC}")"
+    TIMEZONE="$(wizard_input "🕐 Enter your timezone" "e.g. America/New_York" "${DEF_TZ:-${DETECTED_TZ:-UTC}}")"
     [ -z "$TIMEZONE" ] && TIMEZONE="UTC"
 else
     TIMEZONE="$TZ_CHOICE"
