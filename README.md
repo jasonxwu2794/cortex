@@ -1,3 +1,5 @@
+> ⚠️ **This repository is deprecated and archived.** It has been superseded by **[jasonwu-ai/ajentic](https://github.com/jasonwu-ai/ajentic)** (open-source core) and **[jasonwu-ai/ajentic-cloud](https://github.com/jasonwu-ai/ajentic-cloud)** (cloud platform). Please use those instead.
+
 # Ajentic — Core (Open Source)
 
 > **A self-hosted, single-user AI agent system with persistent memory — zero to running in one command.**
