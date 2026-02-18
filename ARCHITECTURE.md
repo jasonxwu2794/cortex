@@ -1,8 +1,10 @@
-# Cortex by Ajentic — Architecture
+# Ajentic Core — Architecture
+
+**Repo:** [github.com/jasonwu-ai/ajentic](https://github.com/jasonwu-ai/ajentic) | **License:** Apache 2.0
 
 ## Project Vision
 
-A multi-agent AI system that runs on OpenClaw, designed for someone interested in AI agents running on a ~$5-20 VPS. No Docker, no Redis, no complex infrastructure — just OpenClaw sessions and SQLite.
+A multi-agent AI system designed for someone interested in AI agents running on a ~$5-20 VPS. No Docker, no Redis, no complex infrastructure — just OpenClaw sessions and SQLite.
 
 - **One-command installer** with TUI wizard (using `gum`)
 - **5 AI agents** as OpenClaw sessions, orchestrated by Cortex

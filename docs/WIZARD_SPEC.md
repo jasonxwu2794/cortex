@@ -13,7 +13,7 @@ The wizard is the **primary onboarding experience** for the Memory-Enhanced Mult
 
 | Principle | Detail |
 |-----------|--------|
-| **Entry point** | `curl -fsSL https://raw.githubusercontent.com/jasonxwu2794/cortex/main/install.sh \| bash` |
+| **Entry point** | `curl -fsSL https://raw.githubusercontent.com/jasonwu-ai/ajentic/main/install.sh \| bash` |
 | **TUI engine** | [gum](https://github.com/charmbracelet/gum) — beautiful, single binary (~5MB), worth the polish |
 | **Re-runnable** | `./wizard.sh --reconfigure` — change anything, anytime, no manual config editing |
 | **Target user** | Someone interested in AI agents, not deeply technical, running a $5–20/mo VPS |

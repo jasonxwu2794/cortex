@@ -1,4 +1,8 @@
-# Cortex by Ajentic — Roadmap
+# Ajentic Core — Roadmap
+
+**Repo:** [github.com/jasonwu-ai/ajentic](https://github.com/jasonwu-ai/ajentic) | **Cloud:** [app.jasonwu.ai](https://app.jasonwu.ai)
+
+> Many features listed as planned for Core are already available today in [Ajentic Cloud](https://github.com/jasonwu-ai/ajentic-cloud) — the managed SaaS version. Core focuses on the best possible self-hosted single-user experience. Cloud adds multi-user, web dashboard, Team Chat, email/calendar/finance/trends plugins, Docker sandbox, billing, and more.
 
 ## Phase 1: Foundation ✅
 
@@ -78,9 +82,10 @@
 
 ## Phase 2: Pro Tier 🔮
 
+> **Note:** Several items below are already implemented in [Ajentic Cloud](https://github.com/jasonwu-ai/ajentic-cloud) (War Room, Smart model routing, PII sanitizer, vulnerability scanner, license checker). Core will get these features in later phases.
+
 - [ ] Weekly strategic review (auto-generated summary of progress, blockers, velocity)
 - [ ] Smart brief scheduling (learn when user is active, deliver at optimal time)
-- [ ] Team digest (multi-user summary for collaborative projects)
 - [ ] Cost reports in morning brief (LLM spend breakdown by agent/provider)
 - [ ] Parallel task execution (Builder + Researcher simultaneously)
 - [ ] Multiple concurrent projects with priority management
@@ -88,9 +93,8 @@
 - [ ] Dependency graph visualization
 - [ ] Branch-per-feature with automated PR creation + Guardian review
 - [ ] CI/CD pipeline (auto-test, auto-deploy on merge)
-- [ ] War Room mode — agents discuss/debate in a visible group chat in real-time
-- [ ] Smart model routing (cheap models for simple tasks, expensive for complex)
-- [ ] Team analytics (agent performance, bottleneck detection, improvement tracking)
+- [ ] War Room mode — agents discuss/debate in a visible group chat in real-time *(available in Cloud)*
+- [ ] Smart model routing — cheap models for simple tasks, expensive for complex *(available in Cloud)*
 - [ ] One-command rollback with diff preview
 - [ ] Multi-repo project management
 - [ ] GitHub Actions integration
@@ -99,15 +103,13 @@
   - Search/replace block parser (~50 lines, works with ANY LLM)
   - Tree-sitter repo mapping for intelligent context
   - Unlocks models not supported by Aider (Kimi K2.5, future models)
-  - Zero external dependency for code editing
 - [ ] Full model flexibility — any OpenAI-compatible or native API model for any agent
-- [ ] Smart model routing v2 (auto-select based on task complexity + Arena/Aider benchmarks)
 - [ ] Guardian Pro capabilities:
-  - Dependency vulnerability audit (CVE database lookups)
-  - License compliance checking (flag GPL/AGPL in MIT projects, etc.)
+  - Dependency vulnerability audit / CVE scanning *(available in Cloud as `vuln_scan`)*
+  - License compliance checking *(available in Cloud as `license_check`)*
   - Attack surface review (endpoint exposure, auth gaps, input validation coverage)
-  - Post-commit health checks with test runner integration (run tests after Guardian approves, auto-rollback on failure)
-  - Memory sanitization (scan at write time, periodic sweep of existing memories, quarantine flagged content for human review)
+  - Post-commit health checks with test runner integration
+  - PII sanitization at memory write time *(available in Cloud)*
 
 ---
 
